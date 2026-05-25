@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Navigation Menu with Correct Icons -->
+    <item
+        android:id="@+id/nav_home"
+        android:icon="@drawable/ic_home"
+        android:title="Home" />
+    <item
+        android:id="@+id/nav_play"
+        android:icon="@drawable/ic_extension"
+        android:title="Play" />
+    <item
+        android:id="@+id/nav_ranks"
+        android:icon="@drawable/ic_leaderboard"
+        android:title="Ranks" />
+    <item
+        android:id="@+id/nav_profile"
+        android:icon="@drawable/ic_person"
+        android:title="Profile" />
+</menu>
