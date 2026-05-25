@@ -1,6 +1,8 @@
 package com.example.sambungayat;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -13,15 +15,20 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
 
-        // Delay 2.5 detik lalu pindah ke Menu Utama
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                // FIX: Pastikan memanggil MenuActivity.class (Abaikan error jika belum buat MenuActivity)
-                Intent intent = new Intent(SplashActivity.this, MenuActivity.class);
-                startActivity(intent);
-                finish();
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            SharedPreferences sharedPref = getSharedPreferences("SambungAyatPref", Context.MODE_PRIVATE);
+            int userId = sharedPref.getInt("USER_ID", 0);
+
+            Intent intent;
+            if (userId != 0) {
+                // Jika sudah login, ke Dashboard
+                intent = new Intent(SplashActivity.this, DashboardActivity.class);
+            } else {
+                // Jika belum, ke Login
+                intent = new Intent(SplashActivity.this, LoginActivity.class);
             }
+            startActivity(intent);
+            finish();
         }, 2500);
     }
 }

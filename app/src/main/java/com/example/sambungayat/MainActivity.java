@@ -1,6 +1,10 @@
 package com.example.sambungayat;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.media.MediaPlayer;
+import android.media.PlaybackParams;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
@@ -19,48 +23,42 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
-    // Komponen UI
     private TextView tvSurahInfo, tvScore, tvNyawa, tvHasilSusunan;
     private ImageButton btnPutarSuara;
     private LinearLayout layoutPilihanKata;
     private Button btnHint, btnMenyerah;
 
-    // Logika Game
     private int currentScore = 0;
     private int nyawa = 3;
     private int surahId;
     private String surahName;
     private int currentIndex = 0;
+    private int userId;
+    private String username;
 
     private MediaPlayer mediaPlayer;
     private List<QuizModel> quizList = new ArrayList<>();
-
-    // Logika Susun Ayat
-    private String[] potonganKataBenar;
     private ArrayList<String> listPilihanUser = new ArrayList<>();
 
-    // Endpoint API XAMPP sesuai nama folder kamu
-    private final String GET_AYAT_URL = "http://10.0.2.2/API_sambung_ayat/get_ayat.php?surah_id=";
-    private final String SUBMIT_SCORE_URL = "http://10.0.2.2/API_sambung_ayat/submit_score.php";
-
-    // Model Data yang presisi dengan tabel 'verses' databasemu
     public static class QuizModel {
         int verseNumber;
-        String textArabFull;
+        String textIndo;
         String audioUrl;
+        List<String> kataAcak;
+        List<String> kataBenar;
 
-        public QuizModel(int verseNumber, String textArabFull, String audioUrl) {
+        public QuizModel(int verseNumber, String textIndo, String audioUrl, List<String> kataAcak, List<String> kataBenar) {
             this.verseNumber = verseNumber;
-            this.textArabFull = textArabFull;
+            this.textIndo = textIndo;
             this.audioUrl = audioUrl;
+            this.kataAcak = kataAcak;
+            this.kataBenar = kataBenar;
         }
     }
 
@@ -69,7 +67,10 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Inisialisasi UI
+        SharedPreferences sharedPref = getSharedPreferences("SambungAyatPref", Context.MODE_PRIVATE);
+        userId = sharedPref.getInt("USER_ID", 0);
+        username = sharedPref.getString("USERNAME", "Pemain");
+
         tvSurahInfo = findViewById(R.id.tvSurahInfo);
         tvScore = findViewById(R.id.tvScore);
         tvNyawa = findViewById(R.id.tvNyawa);
@@ -79,65 +80,71 @@ public class MainActivity extends AppCompatActivity {
         btnHint = findViewById(R.id.btnHint);
         btnMenyerah = findViewById(R.id.btnMenyerah);
 
-        // Menerima data kiriman dari MenuActivity
         surahId = getIntent().getIntExtra("SURAH_ID", 1);
         surahName = getIntent().getStringExtra("SURAH_NAME");
 
-        tvSurahInfo.setText("Surah: " + surahName + " (Memuat Ayat...)");
+        tvSurahInfo.setText("Surah: " + surahName + " (Memuat...)");
+        loadQuizData(surahId);
 
-        // Ambil data ayat dari database secara real-time
-        loadQuizDataFromXampp(surahId);
-
-        btnMenyerah.setOnClickListener(v -> {
-            if (!quizList.isEmpty() && currentIndex < quizList.size()) {
-                QuizModel currentQuiz = quizList.get(currentIndex);
-                Toast.makeText(MainActivity.this, "Kamu Menyerah! Jawabannya: " + currentQuiz.textArabFull, Toast.LENGTH_LONG).show();
-            }
-            akhiriPermainan();
-        });
+        btnMenyerah.setOnClickListener(v -> akhiriPermainan());
     }
 
-    private void loadQuizDataFromXampp(int id) {
+    private void loadQuizData(int id) {
         quizList.clear();
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
-                URL url = new URL(GET_AYAT_URL + id);
+                URL url = new URL(Config.URL_GET_AYAT + id);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
                 StringBuilder sb = new StringBuilder();
                 String line;
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line);
-                }
+                while ((line = reader.readLine()) != null) sb.append(line);
                 reader.close();
 
-                JSONArray jsonArray = new JSONArray(sb.toString());
-                for (int i = 0; i < jsonArray.length(); i++) {
-                    JSONObject obj = jsonArray.getJSONObject(i);
-                    int verseNumber = obj.getInt("verse_number");
-                    String textArabFull = obj.getString("text_arab_full"); // Presisi dengan nama kolom di SQL
-                    String audioUrl = obj.getString("audio_url");           // Presisi dengan nama kolom di SQL
+                JSONObject response = new JSONObject(sb.toString());
+                if (response.getString("status").equals("success")) {
+                    JSONArray data = response.getJSONArray("data");
+                    for (int i = 0; i < data.length(); i++) {
+                        JSONObject obj = data.getJSONObject(i);
+                        JSONArray wordsArr = obj.getJSONArray("kata_acak");
+                        
+                        List<String> kataAcak = new ArrayList<>();
+                        String[] benarArr = new String[wordsArr.length()];
+                        
+                        for (int j = 0; j < wordsArr.length(); j++) {
+                            JSONObject w = wordsArr.getJSONObject(j);
+                            String txt = w.getString("word_text");
+                            int order = w.getInt("word_order") - 1;
+                            kataAcak.add(txt);
+                            if (order >= 0 && order < benarArr.length) benarArr[order] = txt;
+                        }
 
-                    quizList.add(new QuizModel(verseNumber, textArabFull, audioUrl));
+                        List<String> kataBenar = new ArrayList<>();
+                        for (String s : benarArr) if (s != null) kataBenar.add(s);
+
+                        quizList.add(new QuizModel(
+                            obj.getInt("verse_number"),
+                            obj.getString("text_indo"),
+                            obj.getString("audio_url"),
+                            kataAcak,
+                            kataBenar
+                        ));
+                    }
                 }
 
                 runOnUiThread(() -> {
                     if (quizList.isEmpty()) {
-                        Toast.makeText(MainActivity.this, "Surah ini belum memiliki data ayat di database!", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "Data ayat tidak ditemukan!", Toast.LENGTH_SHORT).show();
                         finish();
                     } else {
                         displayQuestion();
                     }
                 });
-
             } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> {
-                    Toast.makeText(MainActivity.this, "Gagal terhubung ke database server!", Toast.LENGTH_LONG).show();
-                    finish();
-                });
+                runOnUiThread(() -> Toast.makeText(this, "Error koneksi database!", Toast.LENGTH_SHORT).show());
             }
         });
     }
@@ -148,147 +155,132 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
+        QuizModel q = quizList.get(currentIndex);
+        tvSurahInfo.setText(surahName + " : Ayat " + q.verseNumber);
         tvScore.setText("Skor: " + currentScore);
         tvNyawa.setText("❤️ Nyawa: " + nyawa);
-
-        QuizModel currentQuiz = quizList.get(currentIndex);
-        tvSurahInfo.setText(surahName + " : Ayat " + currentQuiz.verseNumber);
-
-        // Reset komponen susunan kata
         tvHasilSusunan.setText("");
         listPilihanUser.clear();
         layoutPilihanKata.removeAllViews();
 
-        // Putar audio ayat saat tombol diklik
-        btnPutarSuara.setOnClickListener(v -> putarAudioAyat(currentQuiz.audioUrl));
+        btnPutarSuara.setOnClickListener(v -> putarAudio(q.audioUrl));
+        btnHint.setOnClickListener(v -> Toast.makeText(this, "Hint: " + q.kataBenar.get(0), Toast.LENGTH_SHORT).show());
 
-        // Membagi kalimat utuh menjadi potongan kata berdasarkan spasi secara presisi
-        potonganKataBenar = currentQuiz.textArabFull.trim().split("\\s+");
-
-        btnHint.setOnClickListener(v -> {
-            if (potonganKataBenar.length > 0) {
-                Toast.makeText(MainActivity.this, "💡 Petunjuk: Kata pertama adalah '" + potonganKataBenar[0] + "'", Toast.LENGTH_LONG).show();
-            }
-        });
-
-        // Acak urutan potongan kata untuk dijadikan tombol permainan
-        ArrayList<String> listKataAcak = new ArrayList<>();
-        Collections.addAll(listKataAcak, potonganKataBenar);
-        Collections.shuffle(listKataAcak);
-
-        // Tampilkan tombol kata acak secara dinamis
-        for (String kata : listKataAcak) {
-            Button btnKata = new Button(this);
-            btnKata.setText(kata);
-            btnKata.setAllCaps(false);
-            btnKata.setTextSize(18);
-
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.WRAP_CONTENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            params.setMargins(10, 5, 10, 5);
-            btnKata.setLayoutParams(params);
-
-            btnKata.setOnClickListener(v -> {
+        for (String kata : q.kataAcak) {
+            Button btn = new Button(this);
+            btn.setText(kata);
+            btn.setAllCaps(false);
+            btn.setOnClickListener(v -> {
                 listPilihanUser.add(kata);
-                updateKolomSusunanLayar();
-                btnKata.setEnabled(false); // Kunci tombol agar tidak diklik dua kali
-
-                // Jika kata yang disusun sudah lengkap, lakukan verifikasi jawaban
-                if (listPilihanUser.size() == potonganKataBenar.length) {
-                    cekHasilSusunanUser();
-                }
+                StringBuilder sb = new StringBuilder();
+                for(String s : listPilihanUser) sb.append(s).append(" ");
+                tvHasilSusunan.setText(sb.toString().trim());
+                btn.setEnabled(false);
+                if (listPilihanUser.size() == q.kataBenar.size()) cekJawaban();
             });
-            layoutPilihanKata.addView(btnKata);
+            layoutPilihanKata.addView(btn);
         }
     }
 
-    private void updateKolomSusunanLayar() {
-        StringBuilder sb = new StringBuilder();
-        for (String k : listPilihanUser) {
-            sb.append(k).append(" ");
-        }
-        tvHasilSusunan.setText(sb.toString().trim());
-    }
-
-    private void cekHasilSusunanUser() {
-        boolean isBenar = true;
-        for (int i = 0; i < potonganKataBenar.length; i++) {
-            if (!listPilihanUser.get(i).equals(potonganKataBenar[i])) {
-                isBenar = false;
+    private void cekJawaban() {
+        QuizModel q = quizList.get(currentIndex);
+        boolean benar = true;
+        for (int i = 0; i < q.kataBenar.size(); i++) {
+            if (!listPilihanUser.get(i).equals(q.kataBenar.get(i))) {
+                benar = false;
                 break;
             }
         }
 
-        if (isBenar) {
+        if (benar) {
             currentScore += 10;
-            Toast.makeText(this, "🎉 Hebat, Susunan Ayat Benar!", Toast.LENGTH_SHORT).show();
             currentIndex++;
+            Toast.makeText(this, "Benar!", Toast.LENGTH_SHORT).show();
             displayQuestion();
         } else {
             nyawa--;
-            Toast.makeText(this, "❌ Susunan Salah! Coba lagi.", Toast.LENGTH_SHORT).show();
-            if (nyawa <= 0) {
-                akhiriPermainan();
-            } else {
-                displayQuestion(); // Reset ulang susunan ayat ini agar user bisa mencoba lagi
-            }
+            Toast.makeText(this, "Salah, coba lagi!", Toast.LENGTH_SHORT).show();
+            if (nyawa > 0) displayQuestion();
+            else akhiriPermainan();
         }
     }
 
-    private void putarAudioAyat(String url) {
-        if (url == null || url.isEmpty() || url.equals("null")) {
-            Toast.makeText(this, "Tautan audio tidak tersedia untuk ayat ini", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-        }
-        mediaPlayer = new MediaPlayer();
+    private void putarAudio(String url) {
         try {
+            if (mediaPlayer != null) mediaPlayer.release();
+            mediaPlayer = new MediaPlayer();
             mediaPlayer.setDataSource(url);
+            
+            // Ambil Pengaturan Audio
+            SharedPreferences audioPrefs = getSharedPreferences("audio_settings", Context.MODE_PRIVATE);
+            float volume = audioPrefs.getFloat("qari_volume", 100f) / 100f;
+            float speed = audioPrefs.getFloat("playback_speed", 1.0f);
+
+            mediaPlayer.setVolume(volume, volume);
             mediaPlayer.prepareAsync();
-            mediaPlayer.setOnPreparedListener(MediaPlayer::start);
-        } catch (IOException e) {
-            Toast.makeText(this, "Gagal memutar audio, periksa koneksi internet!", Toast.LENGTH_SHORT).show();
+            mediaPlayer.setOnPreparedListener(mp -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    PlaybackParams params = mp.getPlaybackParams();
+                    params.setSpeed(speed);
+                    mp.setPlaybackParams(params);
+                }
+                mp.start();
+            });
+        } catch (Exception e) {
+            Toast.makeText(this, "Gagal memutar audio", Toast.LENGTH_SHORT).show();
         }
     }
 
     private void akhiriPermainan() {
-        Toast.makeText(this, "Permainan Selesai! Mengirim Skor...", Toast.LENGTH_LONG).show();
-        // Kirim skor akhir secara background ke tabel leaderboard database XAMPP
-        submitSkorKeDatabase("Pemain_Anonim", currentScore);
-    }
-
-    private void submitSkorKeDatabase(String nama, int skor) {
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
-                URL url = new URL(SUBMIT_SCORE_URL);
+                URL url = new URL(Config.URL_SUBMIT_SCORE);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
 
-                String postData = "nama_pemain=" + URLEncoder.encode(nama, "UTF-8") +
-                        "&skor=" + skor;
+                String postData = "nama_pemain=" + URLEncoder.encode(username, "UTF-8") +
+                        "&skor=" + currentScore +
+                        "&user_id=" + userId;
 
                 OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes("UTF-8"));
+                os.write(postData.getBytes());
                 os.flush();
                 os.close();
 
-                int responseCode = conn.getResponseCode();
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
+
+                JSONObject res = new JSONObject(sb.toString());
                 runOnUiThread(() -> {
-                    if (responseCode == HttpURLConnection.HTTP_OK) {
-                        Toast.makeText(MainActivity.this, "Skor Akhir " + skor + " Berhasil Disimpan ke Leaderboard!", Toast.LENGTH_LONG).show();
-                    } else {
-                        Toast.makeText(MainActivity.this, "Gagal menyimpan skor ke server.", Toast.LENGTH_SHORT).show();
-                    }
-                    finish(); // Keluar kembali ke menu
+                    Toast.makeText(this, "Permainan Selesai! Skor Anda: " + currentScore, Toast.LENGTH_LONG).show();
+                    updateSurahProgress();
                 });
             } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> finish());
+                runOnUiThread(this::finish);
+            }
+        });
+    }
+
+    private void updateSurahProgress() {
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                URL url = new URL(Config.URL_UPDATE_PROGRESS);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
+                String postData = "user_id=" + userId + "&surah_id=" + surahId;
+                OutputStream os = conn.getOutputStream();
+                os.write(postData.getBytes());
+                os.flush();
+                os.close();
+                conn.getInputStream();
+                runOnUiThread(this::finish);
+            } catch (Exception e) {
+                runOnUiThread(this::finish);
             }
         });
     }
@@ -296,8 +288,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mediaPlayer != null) {
-            mediaPlayer.release();
-        }
+        if (mediaPlayer != null) mediaPlayer.release();
     }
 }

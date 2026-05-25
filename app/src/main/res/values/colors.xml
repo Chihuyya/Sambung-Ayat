@@ -1,5 +1,30 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+    <color name="bg_surface">#F8F9FF</color>
+    <color name="surface_card">#FFFFFF</color>
+    <color name="surface_variant">#D9E3F6</color>
+    <color name="surface_container_low">#EFF4FF</color>
+    <color name="primary">#004532</color>
+    <color name="primary_container">#065F46</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="on_primary_container">#8BD6B7</color>
+    <color name="achievement_gold">#FBBF24</color>
+    <color name="text_main">#121C2A</color>
+    <color name="text_variant">#3F4944</color>
+    <color name="border_subtle">#E5E7EB</color>
+    <color name="surface_cream">#FFFCF2</color>
+    <color name="on_surface_variant">#3F4944</color>
+    <color name="on_surface">#121C2A</color>
+    <color name="surface_container_lowest">#FFFFFF</color>
+    <color name="surface_container_high">#DEE9FC</color>
+    <color name="error">#BA1A1A</color>
+    <color name="error_container">#FFDAD6</color>
+    <color name="on_error_container">#93000A</color>
+    <color name="background_light">#F8F9FF</color>
+    <color name="surface_container_highest">#D9E3F6</color>
+    <color name="surface_dim">#D0DBED</color>
+    <color name="tertiary_fixed_dim">#FFB77D</color>
+    <color name="background">#F8F9FF</color>
+    <color name="surface">#FFFFFF</color>
+    <color name="outline_variant">#C4C7C5</color>
+
 </resources>

@@ -1,124 +1,198 @@
 package com.example.sambungayat;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
-import android.widget.Button;
-import android.widget.LinearLayout;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 
 public class LeaderboardActivity extends AppCompatActivity {
 
-    private LinearLayout containerLeaderboard;
-    private Button btnKembali;
+    private RecyclerView recyclerView;
+    private LeaderboardAdapter adapter;
+    private List<LeaderboardUser> userList = new ArrayList<>();
 
-    // Sesuaikan URL ini dengan nama folder API kamu di XAMPP
-    private final String LEADERBOARD_URL = "http://10.0.2.2/API_sambung_ayat/get_leaderboard.php";
+    // Podium views
+    private TextView tvRank1Name, tvRank1Points;
+    private TextView tvRank2Name, tvRank2Points;
+    private TextView tvRank3Name, tvRank3Points;
+
+    // Tab views
+    private TextView tabMingguan, tabBulanan, tabSemua;
+
+    // Pinned User views
+    private TextView tvMyRank, tvMyName, tvMyPoints, tvMyStatus;
+
+    private int userId;
+    private String username;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_leaderboard);
 
-        containerLeaderboard = findViewById(R.id.containerLeaderboard);
-        btnKembali = findViewById(R.id.btnKembali);
+        // Session
+        SharedPreferences sharedPref = getSharedPreferences("SambungAyatPref", Context.MODE_PRIVATE);
+        userId = sharedPref.getInt("USER_ID", 0);
+        username = sharedPref.getString("USERNAME", "Anda");
 
-        // Aksi tombol kembali
-        btnKembali.setOnClickListener(v -> finish());
+        // Bind Podium
+        tvRank1Name = findViewById(R.id.tvRank1Name);
+        tvRank1Points = findViewById(R.id.tvRank1Points);
+        tvRank2Name = findViewById(R.id.tvRank2Name);
+        tvRank2Points = findViewById(R.id.tvRank2Points);
+        tvRank3Name = findViewById(R.id.tvRank3Name);
+        tvRank3Points = findViewById(R.id.tvRank3Points);
 
-        // Tarik data peringkat dari server XAMPP
-        muatDataLeaderboard();
+        // Bind Tabs
+        tabMingguan = findViewById(R.id.tabMingguan);
+        tabBulanan = findViewById(R.id.tabBulanan);
+        tabSemua = findViewById(R.id.tabSemua);
+
+        // Bind Pinned User
+        tvMyRank = findViewById(R.id.tvMyRank);
+        tvMyName = findViewById(R.id.tvMyName);
+        tvMyPoints = findViewById(R.id.tvMyPoints);
+        tvMyStatus = findViewById(R.id.tvMyStatus);
+
+        tvMyName.setText(username);
+
+        // Bind RecyclerView
+        recyclerView = findViewById(R.id.recyclerViewLeaderboard);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new LeaderboardAdapter(userList);
+        recyclerView.setAdapter(adapter);
+
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
+
+        // Tab Listeners
+        tabMingguan.setOnClickListener(v -> selectTab(tabMingguan));
+        tabBulanan.setOnClickListener(v -> selectTab(tabBulanan));
+        tabSemua.setOnClickListener(v -> selectTab(tabSemua));
+
+        // Initial Load
+        selectTab(tabSemua);
     }
 
-    private void muatDataLeaderboard() {
-        // Menggunakan Executor (Background Thread) agar aplikasi tidak lag/freeze saat memuat internet
+    private void selectTab(TextView selectedTab) {
+        // Reset styles
+        tabMingguan.setBackground(null);
+        tabMingguan.setTextColor(Color.parseColor("#3F4944"));
+        tabBulanan.setBackground(null);
+        tabBulanan.setTextColor(Color.parseColor("#3F4944"));
+        tabSemua.setBackground(null);
+        tabSemua.setTextColor(Color.parseColor("#3F4944"));
+
+        // Set selected style
+        selectedTab.setBackgroundResource(R.drawable.bg_tab_active);
+        selectedTab.setTextColor(Color.WHITE);
+
+        fetchLeaderboardData();
+    }
+
+    private void fetchLeaderboardData() {
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
-                URL url = new URL(LEADERBOARD_URL);
+                URL url = new URL(Config.URL_LEADERBOARD);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
 
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "UTF-8"));
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder sb = new StringBuilder();
                 String line;
-                while ((line = reader.readLine()) != null) {
-                    sb.append(line);
-                }
+                while ((line = reader.readLine()) != null) sb.append(line);
                 reader.close();
 
                 JSONArray jsonArray = new JSONArray(sb.toString());
+                List<LeaderboardUser> tempTop3 = new ArrayList<>();
+                List<LeaderboardUser> tempRemaining = new ArrayList<>();
 
-                // Kembali ke Main Thread (UI) untuk merender tampilan
-                runOnUiThread(() -> {
-                    containerLeaderboard.removeAllViews();
+                int myRankFound = -1;
+                int myScoreFound = 0;
 
-                    if (jsonArray.length() == 0) {
-                        TextView tvKosong = new TextView(LeaderboardActivity.this);
-                        tvKosong.setText("Belum ada skor yang tersimpan. Jadilah yang pertama!");
-                        tvKosong.setTextAlignment(TextView.TEXT_ALIGNMENT_CENTER);
-                        tvKosong.setTextSize(16);
-                        containerLeaderboard.addView(tvKosong);
-                        return;
+                for (int i = 0; i < jsonArray.length(); i++) {
+                    JSONObject obj = jsonArray.getJSONObject(i);
+                    String pName = obj.getString("nama_pemain");
+                    int pScore = obj.getInt("skor");
+                    
+                    LeaderboardUser user = new LeaderboardUser(
+                            i + 1,
+                            pName,
+                            pScore,
+                            "Waktu: " + obj.optString("waktu_main", "-")
+                    );
+                    
+                    // Cek jika ini adalah user yang sedang login (simulasi sederhana berdasarkan nama)
+                    if (pName.equalsIgnoreCase(username)) {
+                        myRankFound = i + 1;
+                        myScoreFound = pScore;
                     }
 
-                    for (int i = 0; i < jsonArray.length(); i++) {
-                        try {
-                            JSONObject obj = jsonArray.getJSONObject(i);
-                            String nama = obj.getString("nama_pemain");
-                            int skor = obj.getInt("skor");
-                            String waktu = obj.getString("waktu_main");
+                    if (i < 3) {
+                        tempTop3.add(user);
+                    } else {
+                        tempRemaining.add(user);
+                    }
+                }
 
-                            // Membuat kotak kartu peringkat secara otomatis dari Java
-                            LinearLayout card = new LinearLayout(LeaderboardActivity.this);
-                            card.setOrientation(LinearLayout.VERTICAL);
-                            card.setBackgroundColor(Color.WHITE);
-                            card.setPadding(30, 20, 30, 20);
+                int finalMyRankFound = myRankFound;
+                int finalMyScoreFound = myScoreFound;
 
-                            // Mengatur margin antar kartu
-                            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-                            params.setMargins(0, 0, 0, 15);
-                            card.setLayoutParams(params);
+                runOnUiThread(() -> {
+                    // Update Podium
+                    updatePodium(tempTop3);
 
-                            // Isi teks kartu (Peringkat, Nama, dan Skor)
-                            TextView tvInfo = new TextView(LeaderboardActivity.this);
-                            String medali = (i == 0) ? "🥇" : (i == 1) ? "🥈" : (i == 2) ? "🥉" : "🔸";
-                            tvInfo.setText(medali + " Peringkat " + (i + 1) + "\n" + nama);
-                            tvInfo.setTextSize(18);
-                            tvInfo.setTextColor(Color.parseColor("#37474F"));
-                            tvInfo.setTypeface(android.graphics.Typeface.DEFAULT, android.graphics.Typeface.BOLD);
+                    // Update List
+                    userList.clear();
+                    userList.addAll(tempRemaining);
+                    adapter.notifyDataSetChanged();
 
-                            TextView tvScore = new TextView(LeaderboardActivity.this);
-                            tvScore.setText("Skor: " + skor + " Poin");
-                            tvScore.setTextSize(16);
-                            tvScore.setTextColor(Color.parseColor("#4CAF50"));
-                            tvScore.setPadding(0, 5, 0, 0);
-
-                            // Masukkan teks ke dalam kartu, lalu kartu ke dalam container utama
-                            card.addView(tvInfo);
-                            card.addView(tvScore);
-                            containerLeaderboard.addView(card);
-
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
+                    // Update Pinned User
+                    if (finalMyRankFound != -1) {
+                        tvMyRank.setText(String.valueOf(finalMyRankFound));
+                        tvMyPoints.setText(String.valueOf(finalMyScoreFound));
                     }
                 });
 
             } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(LeaderboardActivity.this, "Gagal mengambil data Leaderboard dari XAMPP!", Toast.LENGTH_LONG).show());
+                runOnUiThread(() -> Toast.makeText(this, "Gagal memuat leaderboard", Toast.LENGTH_SHORT).show());
             }
         });
+    }
+
+    private void updatePodium(List<LeaderboardUser> top3) {
+        // Reset
+        tvRank1Name.setText("-"); tvRank1Points.setText("0 pts");
+        tvRank2Name.setText("-"); tvRank2Points.setText("0 pts");
+        tvRank3Name.setText("-"); tvRank3Points.setText("0 pts");
+
+        if (top3.size() >= 1) {
+            tvRank1Name.setText(top3.get(0).getName());
+            tvRank1Points.setText(top3.get(0).getScore() + " pts");
+        }
+        if (top3.size() >= 2) {
+            tvRank2Name.setText(top3.get(1).getName());
+            tvRank2Points.setText(top3.get(1).getScore() + " pts");
+        }
+        if (top3.size() >= 3) {
+            tvRank3Name.setText(top3.get(2).getName());
+            tvRank3Points.setText(top3.get(2).getScore() + " pts");
+        }
     }
 }

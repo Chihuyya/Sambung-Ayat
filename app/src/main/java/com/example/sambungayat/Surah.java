@@ -1,20 +1,23 @@
 package com.example.sambungayat;
 
 public class Surah {
-    private int id;
-    private String nameId;
-    private String nameArabic;
-    private int totalVerses;
+    private final int id;
+    private final int surahNumber;
+    private final String name;
+    private final int totalVerses;
+    private final String status; // 'locked', 'unlocked', 'passed'
 
-    public Surah(int id, String nameId, String nameArabic, int totalVerses) {
+    public Surah(int id, int surahNumber, String name, int totalVerses, String status) {
         this.id = id;
-        this.nameId = nameId;
-        this.nameArabic = nameArabic;
+        this.surahNumber = surahNumber;
+        this.name = name;
         this.totalVerses = totalVerses;
+        this.status = status;
     }
 
     public int getId() { return id; }
-    public String getNameId() { return nameId; }
-    public String getNameArabic() { return nameArabic; }
+    public int getSurahNumber() { return surahNumber; }
+    public String getName() { return name; }
     public int getTotalVerses() { return totalVerses; }
+    public String getStatus() { return status; }
 }
