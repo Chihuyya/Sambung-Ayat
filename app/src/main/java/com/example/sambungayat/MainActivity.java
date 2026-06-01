@@ -54,6 +54,7 @@ public class MainActivity extends AppCompatActivity {
     private int correctCount = 0;
     private int userId;
     private int juzId = 1; 
+    private Set<Integer> failedQuestions = new HashSet<>();
     
     private MediaPlayer mediaPlayer, effectPlayer;
     private Typeface uthmaniFont;
@@ -96,9 +97,7 @@ public class MainActivity extends AppCompatActivity {
 
         tvSurahInfo.setText(surahName != null ? surahName : "Sambung Ayat");
         findViewById(R.id.btnMenyerah).setOnClickListener(v -> finish());
-        
         btnHint.setOnClickListener(v -> showHintWarning());
-
         btnPutarSuara.setOnClickListener(v -> {
             if (!questionList.isEmpty() && currentQuestionIndex < questionList.size()) {
                 playAudio(questionList.get(currentQuestionIndex).audioUrl);
@@ -176,30 +175,24 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 String idParam = sbIds.length() > 0 ? sbIds.toString() : "1";
-
                 URL url = new URL(Config.URL_GET_SOAL + idParam + "&limit=" + limit);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder sb = new StringBuilder();
                 String line;
                 while ((line = reader.readLine()) != null) sb.append(line);
-                
                 JSONObject res = new JSONObject(sb.toString());
                 if (res.getString("status").equals("success")) {
                     JSONArray arr = res.getJSONArray("data");
                     questionList.clear();
                     for (int i = 0; i < arr.length(); i++) {
                         JSONObject obj = arr.getJSONObject(i);
-                        
                         String audio = obj.optString("audio_url", "");
                         int sId = obj.optInt("surah_id", 1);
                         int vNum = obj.optInt("verse_number", 1);
-                        
                         if (audio.isEmpty() || audio.equals("null")) {
                             audio = String.format(Locale.US, "https://everyayah.com/data/Alafasy_128kbps/%03d%03d.mp3", sId, vNum);
                         }
-
                         questionList.add(new Question(
                             obj.getString("soal"), obj.getString("jawaban_benar"), audio,
                             obj.optString("text_indo", "Terjemahan tidak tersedia"),
@@ -207,9 +200,7 @@ public class MainActivity extends AppCompatActivity {
                             sId
                         ));
                     }
-                    
                     Collections.shuffle(questionList);
-                    
                     runOnUiThread(() -> {
                         if (progressBar != null) progressBar.setVisibility(View.GONE);
                         displayQuestion();
@@ -226,7 +217,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void displayQuestion() {
         if (currentQuestionIndex >= questionList.size()) {
-            finishSesi();
+            endSession(false);
             return;
         }
         Question q = questionList.get(currentQuestionIndex);
@@ -265,17 +256,15 @@ public class MainActivity extends AppCompatActivity {
             comboStreak++;
             int pointsEarned = (comboStreak >= 5) ? 20 : 10;
             score += pointsEarned;
-            correctCount++;
+            if (!failedQuestions.contains(currentQuestionIndex)) correctCount++;
             
             if (comboStreak % 5 == 0 && nyawa < 3) {
                 nyawa++;
                 Toast.makeText(this, "Combo " + comboStreak + "! Bonus +1 ❤️", Toast.LENGTH_SHORT).show();
             }
-
             tvScore.setText("Skor: " + score);
             tvNyawa.setText("❤️ " + nyawa);
             tvComboStreak.setText("Combo: " + comboStreak + (comboStreak >= 3 ? " 🔥" : ""));
-            
             playEffect(R.raw.benar);
             updateScoreOnServer(pointsEarned);
 
@@ -284,15 +273,14 @@ public class MainActivity extends AppCompatActivity {
             } else {
                 showCustomAlert(true, "Maa Syaa Allah!", "Jawaban kamu benar.", false);
             }
-            
         } else {
+            failedQuestions.add(currentQuestionIndex);
             nyawa--;
             comboStreak = 0;
             tvNyawa.setText("❤️ " + nyawa);
             tvComboStreak.setText("Combo: 0");
-            
             playEffect(R.raw.salah);
-            if (nyawa <= 0) showCustomAlert(false, "Yaaah!", "Nyawa kamu habis!", true);
+            if (nyawa <= 0) endSession(true);
             else showCustomAlert(false, "Ayo Murajaah!", "Kurang tepat, ayo coba lagi.", false);
         }
     }
@@ -313,14 +301,14 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void updateProgressOnServer(int surahId) {
+    private void updateProgressOnServer(int surahId, int progress) {
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
                 URL url = new URL(Config.URL_UPDATE_PROGRESS);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
-                String postData = "user_id=" + userId + "&surah_id=" + surahId + "&juz_id=" + juzId;
+                String postData = "user_id=" + userId + "&surah_id=" + surahId + "&juz_id=" + juzId + "&progress=" + progress;
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
                 os.flush(); os.close();
@@ -329,57 +317,41 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void finishSesi() {
-        int totalQuestions = questionList.size() > 0 ? questionList.size() : 1;
+    private void endSession(boolean isGameOver) {
+        int totalQuestions = Math.max(1, questionList.size());
         int finalProgress = (correctCount * 100) / totalQuestions;
-        
-        // Simpan progres ke database HANYA JIKA sesi selesai (Bukan Game Over)
-        if (nyawa > 0) {
-            Set<Integer> uniqueSurahs = new HashSet<>();
-            for (Question q : questionList) {
-                uniqueSurahs.add(q.surahId);
-            }
-            for (Integer sId : uniqueSurahs) {
-                updateProgressOnServer(sId);
-            }
-        }
 
-        String message = "Alhamdulillah! Kamu menyelesaikan muraajah ini.\nBenar: " + correctCount + "/" + questionList.size() + "\nProgres: " + finalProgress + "%";
-        showCustomAlert(true, "Selesai!", message, true);
+        // SIMPAN PROGRES BERAPAPUN HASILNYA (MESKIPUN GAME OVER)
+        Set<Integer> uniqueSurahs = new HashSet<>();
+        for (Question q : questionList) uniqueSurahs.add(q.surahId);
+        for (Integer sId : uniqueSurahs) updateProgressOnServer(sId, finalProgress);
+
+        String title = isGameOver ? "Yaaah!" : "Selesai!";
+        String message = isGameOver ? "Nyawa kamu habis!\nProgres: " + finalProgress + "%" 
+                                    : "Alhamdulillah! Kamu menyelesaikan muraajah ini.\nBenar: " + correctCount + "/" + totalQuestions + "\nProgres: " + finalProgress + "%";
+        
+        showCustomAlert(!isGameOver, title, message, true);
     }
 
     private void showCustomAlert(boolean isCorrect, String title, String message, boolean isFinish) {
         Dialog dialog = new Dialog(this);
         dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
         dialog.setContentView(R.layout.dialog_custom_alert);
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-        }
+        if (dialog.getWindow() != null) dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
         dialog.setCancelable(false);
-        
         TextView tvTitle = dialog.findViewById(R.id.dialogTitle);
         TextView tvMessage = dialog.findViewById(R.id.dialogMessage);
         ImageView imgIcon = dialog.findViewById(R.id.dialogIcon);
         MaterialButton btn = dialog.findViewById(R.id.btnNext);
-
         tvTitle.setText(title);
         tvMessage.setText(message);
-        
-        if (isFinish || title.contains("STREAK")) {
-            imgIcon.setImageResource(R.drawable.ic_star);
-        } else {
-            imgIcon.setImageResource(isCorrect ? R.drawable.ic_star : R.drawable.ic_close);
-        }
-
+        if (isFinish || title.contains("STREAK")) imgIcon.setImageResource(R.drawable.ic_star);
+        else imgIcon.setImageResource(isCorrect ? R.drawable.ic_star : R.drawable.ic_close);
         btn.setText(isFinish ? "SELESAI" : "LANJUT");
-        
         btn.setOnClickListener(v -> {
             dialog.dismiss();
             if (isFinish) finish();
-            else if (isCorrect) { 
-                currentQuestionIndex++; 
-                displayQuestion(); 
-            }
+            else if (isCorrect) { currentQuestionIndex++; displayQuestion(); }
         });
         dialog.show();
     }
@@ -395,7 +367,7 @@ public class MainActivity extends AppCompatActivity {
             params.setSpeed(playbackSpeed);
             mediaPlayer.setPlaybackParams(params);
             mediaPlayer.start();
-        } catch (Exception e) { Log.e("AUDIO", "Gagal putar audio ayat: " + url); }
+        } catch (Exception e) { Log.e("AUDIO", "Gagal putar audio"); }
     }
 
     private void playEffect(int resId) {

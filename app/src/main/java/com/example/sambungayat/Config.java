@@ -1,11 +1,7 @@
 package com.example.sambungayat;
 
 public class Config {
-    // PENTING: Gunakan IP Laptop Anda (192.168.100.33)
-    // Jika pakai Emulator, ganti menjadi "10.0.2.2"
     public static final String IP_SERVER = "192.168.100.33"; 
-    
-    // Tambahkan slash di akhir agar endpoint di bawahnya benar
     public static final String BASE_URL = "http://" + IP_SERVER + "/api_sambung_ayat/";
 
     public static final String URL_GET_AYAT = BASE_URL + "get_ayat.php?surah_id=";
@@ -20,4 +16,5 @@ public class Config {
     public static final String URL_GET_ACHIEVEMENTS = BASE_URL + "get_achievements.php";
     public static final String URL_UPDATE_PROFILE = BASE_URL + "update_profile.php";
     public static final String URL_LOGIN_GOOGLE = BASE_URL + "login_google.php";
+    public static final String URL_UPDATE_PERFECT = BASE_URL + "update_perfect.php";
 }
