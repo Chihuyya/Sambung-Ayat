@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Main Cube -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M4,4h16v16h-16z" />
+    <!-- Gold Band (Kiswa) -->
+    <path
+        android:fillColor="#D4AF37"
+        android:pathData="M4,7h16v2h-16z" />
+    <!-- Door detail -->
+    <path
+        android:fillColor="#D4AF37"
+        android:pathData="M14,14h3v6h-3z" />
+</vector>

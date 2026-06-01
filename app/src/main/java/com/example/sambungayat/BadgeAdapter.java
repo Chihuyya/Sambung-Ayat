@@ -33,19 +33,19 @@ public class BadgeAdapter extends RecyclerView.Adapter<BadgeAdapter.ViewHolder> 
 
         holder.tvTitle.setText(badge.getTitle());
         holder.tvDesc.setText(badge.getDescription());
+        
+        // Gunakan Resource ID Internal
         holder.ivIcon.setImageResource(badge.getIconResId());
 
         if (badge.isUnlocked()) {
-            // State: Unlocked (Warna Aktif - Tema Gold/Primary)
             holder.iconContainer.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#FFF8E1")));
-            holder.ivIcon.setColorFilter(Color.parseColor("#FBC02D"));
-            holder.tvTitle.setTextColor(Color.parseColor("#121C2A")); // on-surface
+            holder.ivIcon.setColorFilter(null);
+            holder.tvTitle.setTextColor(Color.parseColor("#121C2A"));
             holder.cardBadge.setCardBackgroundColor(Color.WHITE);
             holder.cardBadge.setAlpha(1.0f);
         } else {
-            // State: Locked (Warna Pasif - Abu-abu Transparan)
             holder.iconContainer.setBackgroundTintList(android.content.res.ColorStateList.valueOf(Color.parseColor("#F0F0F0")));
-            holder.ivIcon.setColorFilter(Color.parseColor("#9E9E9E"));
+            holder.ivIcon.setColorFilter(Color.parseColor("#9E9E9E"), android.graphics.PorterDuff.Mode.SRC_IN);
             holder.tvTitle.setTextColor(Color.parseColor("#757575"));
             holder.cardBadge.setCardBackgroundColor(Color.parseColor("#FAFAFA"));
             holder.cardBadge.setAlpha(0.6f);

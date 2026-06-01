@@ -25,7 +25,6 @@ public class AudioSettingsActivity extends AppCompatActivity {
     private static final String KEY_SFX_VOL = "sfx_volume";
     private static final String KEY_SPEED = "playback_speed";
 
-    // Variabel untuk menyimpan nilai sementara sebelum tombol "Simpan" ditekan
     private float currentQariVol = 100f;
     private float currentSfxVol = 75f;
     private float currentSpeed = 1.0f;
@@ -35,13 +34,17 @@ public class AudioSettingsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_audio_settings);
 
-        // Setup Toolbar
+        // Setup Toolbar dengan lebih aman
         Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        if (toolbar != null) {
+            setSupportActionBar(toolbar);
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+                getSupportActionBar().setTitle("Pengaturan Audio");
+            }
+            // Gunakan finish() agar pasti kembali ke halaman sebelumnya tanpa crash
+            toolbar.setNavigationOnClickListener(v -> finish());
         }
-        toolbar.setNavigationOnClickListener(v -> onBackPressed());
 
         // Inisialisasi View
         sliderQariVolume = findViewById(R.id.sliderQariVolume);
@@ -51,41 +54,40 @@ public class AudioSettingsActivity extends AppCompatActivity {
         toggleGroupSpeed = findViewById(R.id.toggleGroupSpeed);
         btnSaveSettings = findViewById(R.id.btnSaveSettings);
 
-        // Load pengaturan yang tersimpan
         sharedPreferences = getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE);
-        loadSavedSettings();
-
-        // Listener: Slider Volume Qari
-        sliderQariVolume.addOnChangeListener(new Slider.OnChangeListener() {
-            @Override
-            public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
+        
+        // Listener Slider
+        if (sliderQariVolume != null) {
+            sliderQariVolume.addOnChangeListener((slider, value, fromUser) -> {
                 currentQariVol = value;
-                tvQariVolume.setText((int) value + "%");
-            }
-        });
+                if (tvQariVolume != null) tvQariVolume.setText((int) value + "%");
+            });
+        }
 
-        // Listener: Slider Volume SFX
-        sliderSfxVolume.addOnChangeListener(new Slider.OnChangeListener() {
-            @Override
-            public void onValueChange(@NonNull Slider slider, float value, boolean fromUser) {
+        if (sliderSfxVolume != null) {
+            sliderSfxVolume.addOnChangeListener((slider, value, fromUser) -> {
                 currentSfxVol = value;
-                tvSfxVolume.setText((int) value + "%");
-            }
-        });
+                if (tvSfxVolume != null) tvSfxVolume.setText((int) value + "%");
+            });
+        }
 
-        // Listener: Grup Tombol Kecepatan
-        toggleGroupSpeed.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
-            if (isChecked) {
-                if (checkedId == R.id.btnSpeed05) currentSpeed = 0.5f;
-                else if (checkedId == R.id.btnSpeed075) currentSpeed = 0.75f;
-                else if (checkedId == R.id.btnSpeed10) currentSpeed = 1.0f;
-                else if (checkedId == R.id.btnSpeed125) currentSpeed = 1.25f;
-                else if (checkedId == R.id.btnSpeed15) currentSpeed = 1.5f;
-            }
-        });
+        if (toggleGroupSpeed != null) {
+            toggleGroupSpeed.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+                if (isChecked) {
+                    if (checkedId == R.id.btnSpeed05) currentSpeed = 0.5f;
+                    else if (checkedId == R.id.btnSpeed075) currentSpeed = 0.75f;
+                    else if (checkedId == R.id.btnSpeed10) currentSpeed = 1.0f;
+                    else if (checkedId == R.id.btnSpeed125) currentSpeed = 1.25f;
+                    else if (checkedId == R.id.btnSpeed15) currentSpeed = 1.5f;
+                }
+            });
+        }
 
-        // Listener: Tombol Simpan
-        btnSaveSettings.setOnClickListener(v -> saveSettings());
+        if (btnSaveSettings != null) {
+            btnSaveSettings.setOnClickListener(v -> saveSettings());
+        }
+
+        loadSavedSettings();
     }
 
     private void loadSavedSettings() {
@@ -93,18 +95,19 @@ public class AudioSettingsActivity extends AppCompatActivity {
         currentSfxVol = sharedPreferences.getFloat(KEY_SFX_VOL, 75f);
         currentSpeed = sharedPreferences.getFloat(KEY_SPEED, 1.0f);
 
-        // Terapkan ke View
-        sliderQariVolume.setValue(currentQariVol);
-        tvQariVolume.setText((int) currentQariVol + "%");
+        if (sliderQariVolume != null) sliderQariVolume.setValue(currentQariVol);
+        if (tvQariVolume != null) tvQariVolume.setText((int) currentQariVol + "%");
 
-        sliderSfxVolume.setValue(currentSfxVol);
-        tvSfxVolume.setText((int) currentSfxVol + "%");
+        if (sliderSfxVolume != null) sliderSfxVolume.setValue(currentSfxVol);
+        if (tvSfxVolume != null) tvSfxVolume.setText((int) currentSfxVol + "%");
 
-        if (currentSpeed == 0.5f) toggleGroupSpeed.check(R.id.btnSpeed05);
-        else if (currentSpeed == 0.75f) toggleGroupSpeed.check(R.id.btnSpeed075);
-        else if (currentSpeed == 1.25f) toggleGroupSpeed.check(R.id.btnSpeed125);
-        else if (currentSpeed == 1.5f) toggleGroupSpeed.check(R.id.btnSpeed15);
-        else toggleGroupSpeed.check(R.id.btnSpeed10); // Default 1.0x
+        if (toggleGroupSpeed != null) {
+            if (currentSpeed == 0.5f) toggleGroupSpeed.check(R.id.btnSpeed05);
+            else if (currentSpeed == 0.75f) toggleGroupSpeed.check(R.id.btnSpeed075);
+            else if (currentSpeed == 1.25f) toggleGroupSpeed.check(R.id.btnSpeed125);
+            else if (currentSpeed == 1.5f) toggleGroupSpeed.check(R.id.btnSpeed15);
+            else toggleGroupSpeed.check(R.id.btnSpeed10);
+        }
     }
 
     private void saveSettings() {
@@ -114,7 +117,7 @@ public class AudioSettingsActivity extends AppCompatActivity {
         editor.putFloat(KEY_SPEED, currentSpeed);
         editor.apply();
 
-        Toast.makeText(this, "Pengaturan Audio Berhasil Disimpan", Toast.LENGTH_SHORT).show();
-        finish(); // Menutup halaman dan kembali ke menu sebelumnya
+        Toast.makeText(this, "Pengaturan Berhasil Disimpan", Toast.LENGTH_SHORT).show();
+        finish();
     }
 }

@@ -1,14 +1,11 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.google.services)
 }
 
 android {
     namespace = "com.example.sambungayat"
-    compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.sambungayat"
@@ -36,10 +33,20 @@ android {
 }
 
 dependencies {
-    // Untuk layout susun kata yang rapi (Flexbox)
     implementation("com.google.android.flexbox:flexbox:3.0.0")
-    // Untuk mengambil data API JSON dengan mudah (Volley)
     implementation("com.android.volley:volley:1.2.1")
+    implementation("com.google.android.gms:play-services-auth:21.3.0")
+    implementation("com.github.f0ris.sweetalert:library:1.6.2")
+    
+    // Glide untuk memuat foto profil Google
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
+
+    // Firebase BoM & SDKs
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.analytics)
+    implementation(libs.firebase.auth)
+
     implementation(libs.appcompat)
     implementation(libs.material)
     implementation(libs.activity)

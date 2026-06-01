@@ -1,30 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_surface">#F8F9FF</color>
-    <color name="surface_card">#FFFFFF</color>
-    <color name="surface_variant">#D9E3F6</color>
-    <color name="surface_container_low">#EFF4FF</color>
-    <color name="primary">#004532</color>
-    <color name="primary_container">#065F46</color>
-    <color name="on_primary">#FFFFFF</color>
-    <color name="on_primary_container">#8BD6B7</color>
-    <color name="achievement_gold">#FBBF24</color>
-    <color name="text_main">#121C2A</color>
-    <color name="text_variant">#3F4944</color>
-    <color name="border_subtle">#E5E7EB</color>
-    <color name="surface_cream">#FFFCF2</color>
-    <color name="on_surface_variant">#3F4944</color>
-    <color name="on_surface">#121C2A</color>
-    <color name="surface_container_lowest">#FFFFFF</color>
-    <color name="surface_container_high">#DEE9FC</color>
-    <color name="error">#BA1A1A</color>
-    <color name="error_container">#FFDAD6</color>
-    <color name="on_error_container">#93000A</color>
-    <color name="background_light">#F8F9FF</color>
-    <color name="surface_container_highest">#D9E3F6</color>
-    <color name="surface_dim">#D0DBED</color>
-    <color name="tertiary_fixed_dim">#FFB77D</color>
-    <color name="background">#F8F9FF</color>
-    <color name="surface">#FFFFFF</color>
-    <color name="outline_variant">#C4C7C5</color>
+    <color name="white">#FFFFFF</color>
 
+    <!-- Warna Utama Aplikasi: Cokelat -->
+    <color name="primary">#5D4037</color>
+    <color name="primary_container">#EFEBE9</color>
+    <color name="on_primary">#FFFFFF</color>
+
+    <color name="secondary">#D4AF37</color>
+    <color name="accent_gold">#FBBF24</color>
+    <color name="background">#FDF5E6</color>
+
+    <color name="text_main">#3E2723</color>
+    <color name="text_variant">#795548</color>
+    <color name="border_subtle">#D7CCC8</color>
+    <color name="error">#B71C1C</color>
+
+    <!-- PENTING: Override Paksa Warna SweetAlert (Agar Tidak Ungu/Biru) -->
+    <color name="main_blue_color">#5D4037</color>
+    <color name="blue_btn_main_color">#5D4037</color>
+    <color name="blue_btn_pressed_color">#3E2723</color>
+    <color name="button_text_color">#FFFFFF</color>
+    <color name="success_stroke_color">#5D4037</color>
+
+    <!-- Material 3 Surface -->
+    <color name="surface_container_high">#EFE5D8</color>
+    <color name="surface_container_low">#F8EFE4</color>
+    <color name="surface_variant">#F5E6D3</color>
 </resources>

@@ -1,8 +1,22 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.SambungAyat" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <!-- Warna Utama Cokelat -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/text_main</item>
+
+        <!-- Warna Sekunder Emas -->
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <!-- Penting: Untuk SweetAlert dan Dialog lama -->
+        <item name="colorAccent">@color/primary</item>
+        <item name="android:statusBarColor">@color/primary</item>
+
+        <!-- Memaksa warna tombol Material secara global -->
+        <item name="materialButtonStyle">@style/Widget.Material3.Button</item>
     </style>
 
     <style name="Theme.SambungAyat" parent="Base.Theme.SambungAyat" />

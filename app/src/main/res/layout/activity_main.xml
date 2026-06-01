@@ -1,138 +1,221 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
-    android:background="#F5F7FA">
+    android:background="@color/background">
 
-    <RelativeLayout
-        android:id="@+id/layoutHeader"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-        <TextView
-            android:id="@+id/tvSurahInfo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Surah: Loading..."
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#333333"/>
-
-        <TextView
-            android:id="@+id/tvNyawa"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentEnd="true"
-            android:text="❤️ Nyawa: 3"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#E91E63"/>
-
-        <TextView
-            android:id="@+id/tvScore"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_below="@id/tvSurahInfo"
-            android:layout_marginTop="5dp"
-            android:text="Skor: 0"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="#4CAF50"/>
-    </RelativeLayout>
-
-    <LinearLayout
-        android:id="@+id/layoutPertanyaan"
+    <!-- Header -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/layoutHeader"
-        android:orientation="vertical"
-        android:gravity="center"
-        android:layout_marginTop="25dp">
+        app:cardBackgroundColor="@color/primary"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="8dp">
 
-        <ImageButton
-            android:id="@+id/btnPutarSuara"
-            android:layout_width="75dp"
-            android:layout_height="75dp"
-            android:background="@android:color/transparent"
-            android:scaleType="fitCenter"
-            android:src="@android:drawable/ic_media_play"
-            android:contentDescription="Putar Suara" />
-
-        <TextView
-            android:id="@+id/tvPetunjuk"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Dengarkan audio lalu susun potongan ayat di bawah!"
-            android:textSize="13sp"
-            android:textColor="#7F8C8D"
-            android:layout_marginTop="5dp"
-            android:gravity="center"/>
-
-        <TextView
-            android:id="@+id/tvHasilSusunan"
+        <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="90dp"
-            android:text=""
-            android:hint="[ Ketuk kata di bawah untuk menyusun ]"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:layout_marginTop="20dp"
-            android:padding="15dp"
-            android:background="#FFFFFF"
-            android:textColor="#2C3E50"
-            android:elevation="3dp"/>
-    </LinearLayout>
+            android:padding="20dp">
 
-    <HorizontalScrollView
-        android:id="@+id/scrollPilihan"
+            <TextView
+                android:id="@+id/tvSurahInfo"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-black"
+                android:text="Memuat..."
+                android:textColor="#FFFFFF"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/tvNyawa"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:fontFamily="sans-serif-medium"
+                android:text="❤️ 3"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_below="@id/tvSurahInfo"
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvScore"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Skor: 0"
+                    android:textColor="@color/secondary"
+                    android:textStyle="bold" />
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="14dp"
+                    android:layout_marginHorizontal="16dp"
+                    android:background="#40FFFFFF" />
+
+                <TextView
+                    android:id="@+id/tvComboStreak"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Combo: 0"
+                    android:textColor="#FFFFFF" />
+            </LinearLayout>
+        </RelativeLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/layoutPertanyaan"
+        android:layout_height="match_parent"
+        android:layout_below="@id/cardHeader"
         android:layout_above="@id/layoutAksiBawah"
-        android:layout_marginTop="30dp"
-        android:layout_marginBottom="30dp"
-        android:scrollbars="none">
+        android:fillViewport="true">
 
         <LinearLayout
-            android:id="@+id/layoutPilihanKata"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center"
-            android:padding="5dp" />
-    </HorizontalScrollView>
+            android:orientation="vertical"
+            android:paddingBottom="20dp">
 
+            <!-- Soal Teks Arab -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardSoalArab"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="20dp"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:strokeColor="@color/border_subtle"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="24dp"
+                    android:gravity="center">
+
+                    <TextView
+                        android:id="@+id/tvSoalArab"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center"
+                        android:text="-"
+                        android:textColor="@color/primary"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:textDirection="rtl" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Drop Zone (Target) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/dropZoneCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="110dp"
+                android:layout_margin="20dp"
+                app:cardBackgroundColor="@color/surface_variant"
+                app:cardCornerRadius="20dp"
+                app:strokeColor="@color/secondary"
+                app:strokeWidth="2dp">
+
+                <TextView
+                    android:id="@+id/tvHasilSusunan"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="110dp"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:hint="Ketuk kata-kata di bawah untuk menyusun ayat"
+                    android:textColor="@color/primary"
+                    android:textColorHint="@color/text_variant"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textDirection="rtl" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Audio Player -->
+            <LinearLayout
+                android:id="@+id/layoutAudio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_marginBottom="24dp">
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    app:cardBackgroundColor="@color/primary"
+                    app:cardCornerRadius="32dp"
+                    app:cardElevation="6dp">
+                    <ImageButton
+                        android:id="@+id/btnPutarSuara"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="?android:attr/selectableItemBackground"
+                        android:src="@android:drawable/ic_media_play"
+                        app:tint="@color/white" />
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <!-- Loading Indicator -->
+            <ProgressBar
+                android:id="@+id/progressBar"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_margin="20dp"
+                android:visibility="gone" />
+
+            <!-- Pilihan Jawaban -->
+            <com.google.android.flexbox.FlexboxLayout
+                android:id="@+id/layoutPilihanKata"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="20dp"
+                app:flexWrap="wrap"
+                app:justifyContent="center"
+                app:flexDirection="row_reverse" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Tombol Aksi Bawah -->
     <LinearLayout
         android:id="@+id/layoutAksiBawah"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:orientation="horizontal"
+        android:padding="20dp"
         android:weightSum="2"
-        android:layout_marginBottom="10dp">
-
-        <Button
+        android:background="@color/background">
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnHint"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
+            android:layout_marginEnd="10dp"
             android:layout_weight="1"
-            android:text="💡 Bantuan (Hint)"
-            android:layout_marginEnd="8dp"
-            android:backgroundTint="#FF9800"
-            android:textColor="#FFFFFF"/>
-
-        <Button
+            android:text="BANTUAN"
+            android:textColor="@color/primary"
+            app:strokeColor="@color/primary"
+            app:cornerRadius="12dp" />
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnMenyerah"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
+            android:layout_marginStart="10dp"
             android:layout_weight="1"
-            android:text="🏳️ Menyerah"
-            android:layout_marginStart="8dp"
-            android:backgroundTint="#E74C3C"
-            android:textColor="#FFFFFF"/>
+            android:text="KELUAR"
+            app:backgroundTint="@color/error"
+            app:cornerRadius="12dp" />
     </LinearLayout>
-
 </RelativeLayout>

@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "154714814058",
+    "project_id": "sambung-ayat-e6b74",
+    "storage_bucket": "sambung-ayat-e6b74.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:154714814058:android:085e2e416f6eb14db5bc13",
+        "android_client_info": {
+          "package_name": "com.example.sambungayat"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "154714814058-84siup0k3egqi4k0at76okrlrvq37cn0.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAVrZMCQwXyXmDRuXTrpM9Ro8Ju314cwvQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "154714814058-84siup0k3egqi4k0at76okrlrvq37cn0.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

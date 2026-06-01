@@ -1,3 +1,58 @@
+
 <resources>
     <string name="app_name">Sambung Ayat</string>
+
+    <!-- Google Web Client ID (Ditambahkan manual agar tidak error) -->
+    <string name="default_web_client_id">154714814058-84siup0k3egqi4k0at76okrlrvq37cn0.apps.googleusercontent.com</string>
+
+    <!-- Titles -->
+    <string name="audio_settings_title">Pengaturan Audio</string>
+    <string name="notification_settings_title">Notifikasi</string>
+
+    <!-- Audio Settings -->
+    <string name="qari_volume">Volume Qari</string>
+    <string name="sfx_volume">Volume Efek Suara</string>
+    <string name="playback_speed">Kecepatan Putar</string>
+    <string name="save_settings">SIMPAN PENGATURAN</string>
+    <string name="percent_100">100%</string>
+    <string name="percent_75">75%</string>
+    <string name="speed_05">0.5x</string>
+    <string name="speed_075">0.75x</string>
+    <string name="speed_10">1.0x</string>
+    <string name="speed_125">1.25x</string>
+    <string name="speed_15">1.5x</string>
+
+    <!-- Notification Settings -->
+    <string name="daily_reminder">Pengingat Harian</string>
+    <string name="daily_reminder_desc">Jaga konsistensi hafalan Anda setiap hari.</string>
+    <string name="tips_techniques">Tips &amp; Teknik Hafalan</string>
+    <string name="tips_techniques_desc">Dapatkan wawasan berkala teknik murajaah.</string>
+    <string name="notif_system_info">Pastikan notifikasi sistem aktif di pengaturan HP agar pengingat dapat muncul tepat waktu.</string>
+
+    <!-- Accessibility Descriptions -->
+    <string name="desc_back">Tombol Kembali</string>
+    <string name="desc_info">Ikon Informasi</string>
+    <string name="desc_lock">Ikon Terkunci</string>
+
+    <!-- Game / MainActivity / Alerts -->
+    <string name="hint_title">Butuh Bantuan? 🤔</string>
+    <string name="hint_message">Apakah Anda ingin melihat terjemahan ayat selanjutnya?\n(Mengurangi 1 Nyawa)</string>
+    <string name="hint_confirm">Ya, Gunakan</string>
+    <string name="cancel">Batal</string>
+    <string name="not_enough_lives">Nyawa tidak cukup!</string>
+
+    <string name="title_correct">Maa Syaa Allah! ✅</string>
+    <string name="msg_correct">Jawaban Anda Benar.</string>
+    <string name="title_wrong">Kurang Tepat ❌</string>
+    <string name="msg_wrong">Coba dengarkan lagi soalnya.</string>
+
+    <string name="game_over_title">Yaaah, Gagal! 😢</string>
+    <string name="game_over_msg">Nyawa kamu sudah habis. Jangan menyerah, ayo murajaah lagi!</string>
+    <string name="finish_title">Alhamdulillah! 🎉</string>
+    <string name="finish_msg">Selamat! Anda menyelesaikan tantangan dengan luar biasa.\n\nSkor Akhir: %d</string>
+
+    <string name="back_to_home">BERANDA</string>
+    <string name="great_job">HEBAT</string>
+    <string name="lanjut">LANJUT</string>
+    <string name="loading">Memuat...</string>
 </resources>
