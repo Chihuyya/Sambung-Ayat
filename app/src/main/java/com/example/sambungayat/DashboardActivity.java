@@ -114,6 +114,8 @@ public class DashboardActivity extends AppCompatActivity {
                 URL url = new URL(Config.URL_GET_PROFILE + "?user_id=" + userId);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
+                conn.setConnectTimeout(15000); // Batas tunggu 15 detik
+                conn.setReadTimeout(15000);
 
                 if (conn.getResponseCode() == 200) {
                     BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -129,7 +131,6 @@ public class DashboardActivity extends AppCompatActivity {
                         int dailyStreak = data.optInt("daily_streak", 0);
                         int completedSurahs = data.optInt("completed_surahs_count", 0);
                         
-                        // Perbaikan hitungan persen agar lebih akurat (menggunakan Math.ceil)
                         int overallPercent = (int) Math.ceil((completedSurahs * 100.0) / 114.0);
                         int juz30Percent = data.optInt("juz_30_progress", 0);
                         

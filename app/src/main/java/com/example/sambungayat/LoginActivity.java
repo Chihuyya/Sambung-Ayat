@@ -99,8 +99,8 @@ public class LoginActivity extends AppCompatActivity {
                 URL url = new URL(Config.URL_LOGIN_GOOGLE);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
-                conn.setConnectTimeout(7000);
-                conn.setReadTimeout(7000);
+                conn.setConnectTimeout(15000); // Diperpanjang ke 15 detik
+                conn.setReadTimeout(15000);
                 conn.setDoOutput(true);
 
                 String postData = "email=" + URLEncoder.encode(acct.getEmail() != null ? acct.getEmail() : "", "UTF-8") +
@@ -149,8 +149,8 @@ public class LoginActivity extends AppCompatActivity {
                 URL url = new URL(Config.URL_LOGIN);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
-                conn.setConnectTimeout(7000);
-                conn.setReadTimeout(7000);
+                conn.setConnectTimeout(15000); // Diperpanjang ke 15 detik
+                conn.setReadTimeout(15000);
                 conn.setDoOutput(true);
 
                 String postData = "username=" + URLEncoder.encode(username, "UTF-8") +

@@ -69,7 +69,8 @@ public class RegisterActivity extends AppCompatActivity {
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
-                conn.setConnectTimeout(8000);
+                conn.setConnectTimeout(15000); // Diperpanjang ke 15 detik
+                conn.setReadTimeout(15000);
 
                 String postData = "username=" + URLEncoder.encode(username, "UTF-8") +
                         "&email=" + URLEncoder.encode(email, "UTF-8") +

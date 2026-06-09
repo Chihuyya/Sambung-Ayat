@@ -129,8 +129,8 @@ public class PilihSurahActivity extends AppCompatActivity {
                 URL url = new URL(Config.URL_GET_SURAHS + "?juz=" + juz + "&user_id=" + userId);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
-                conn.setConnectTimeout(8000);
-                conn.setReadTimeout(8000);
+                conn.setConnectTimeout(15000); // Diperpanjang ke 15 detik
+                conn.setReadTimeout(15000);
                 
                 BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder sb = new StringBuilder();

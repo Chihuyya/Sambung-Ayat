@@ -67,7 +67,8 @@ public class LeaderboardActivity extends AppCompatActivity {
                 URL url = new URL(Config.URL_LEADERBOARD);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("GET");
-                conn.setConnectTimeout(8000);
+                conn.setConnectTimeout(15000); // Diperpanjang ke 15 detik
+                conn.setReadTimeout(15000);
 
                 BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 StringBuilder sb = new StringBuilder();
@@ -118,7 +119,7 @@ public class LeaderboardActivity extends AppCompatActivity {
                         .setTitleText("Oops...")
                         .setContentText("Gagal memuat peringkat terbaru.")
                         .setConfirmText("OK")
-                        .setConfirmButtonBackgroundColor(COLOR_PRIMARY) // Perbaikan warna tombol
+                        .setConfirmButtonBackgroundColor(COLOR_PRIMARY)
                         .show());
             }
         });

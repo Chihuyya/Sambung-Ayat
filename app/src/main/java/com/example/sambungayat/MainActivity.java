@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
+import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.media.PlaybackParams;
 import android.os.Bundle;
@@ -32,9 +33,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 
@@ -63,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
     private float qariVolume = 1.0f;
     private float sfxVolume = 1.0f;
     private float playbackSpeed = 1.0f;
+    private String currentPlayingUrl = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,21 +92,27 @@ public class MainActivity extends AppCompatActivity {
         dropZoneCard = findViewById(R.id.dropZoneCard);
         btnHint = findViewById(R.id.btnHint);
 
-        tvHasilSusunan.setTypeface(uthmaniFont);
-        tvSoalArab.setTypeface(uthmaniFont);
+        if (tvHasilSusunan != null) tvHasilSusunan.setTypeface(uthmaniFont);
+        if (tvSoalArab != null) tvSoalArab.setTypeface(uthmaniFont);
 
         ArrayList<Integer> selectedSurahIds = getIntent().getIntegerArrayListExtra("SELECTED_SURAH_IDS");
         int limit = getIntent().getIntExtra("LIMIT", 5);
         String surahName = getIntent().getStringExtra("SURAH_NAME");
 
-        tvSurahInfo.setText(surahName != null ? surahName : "Sambung Ayat");
-        findViewById(R.id.btnMenyerah).setOnClickListener(v -> finish());
-        btnHint.setOnClickListener(v -> showHintWarning());
-        btnPutarSuara.setOnClickListener(v -> {
-            if (!questionList.isEmpty() && currentQuestionIndex < questionList.size()) {
-                playAudio(questionList.get(currentQuestionIndex).audioUrl);
-            }
-        });
+        if (tvSurahInfo != null) tvSurahInfo.setText(surahName != null ? surahName : "Sambung Ayat");
+        
+        View btnMenyerah = findViewById(R.id.btnMenyerah);
+        if (btnMenyerah != null) btnMenyerah.setOnClickListener(v -> finish());
+        
+        if (btnHint != null) btnHint.setOnClickListener(v -> showHintWarning());
+        
+        if (btnPutarSuara != null) {
+            btnPutarSuara.setOnClickListener(v -> {
+                if (!questionList.isEmpty() && currentQuestionIndex < questionList.size()) {
+                    toggleAudio(questionList.get(currentQuestionIndex).audioUrl);
+                }
+            });
+        }
         
         setupDropZone();
         loadQuestions(selectedSurahIds, limit);
@@ -120,26 +130,38 @@ public class MainActivity extends AppCompatActivity {
         qariVolume = audioPref.getFloat("qari_volume", 100f) / 100f;
         sfxVolume = audioPref.getFloat("sfx_volume", 75f) / 100f;
         playbackSpeed = audioPref.getFloat("playback_speed", 1.0f);
+        if (mediaPlayer != null) {
+            mediaPlayer.setVolume(qariVolume, qariVolume);
+        }
     }
 
     private void showHintWarning() {
         new SweetAlertDialog(this, SweetAlertDialog.WARNING_TYPE)
                 .setTitleText("Butuh Bantuan?")
-                .setContentText("Nyawa kamu akan berkurang 1 untuk melihat arti ayat ini. Lanjutkan?")
+                .setContentText("Nyawa kamu akan berkurang 1 untuk melihat potongan ayat ini. Lanjutkan?")
                 .setConfirmText("Ya, Gunakan")
                 .setCancelText("Batal")
                 .setConfirmButtonBackgroundColor(COLOR_PRIMARY)
                 .setConfirmClickListener(sDialog -> {
                     if (nyawa > 1) {
                         nyawa--;
-                        tvNyawa.setText("❤️ " + nyawa);
-                        sDialog.setTitleText("Bantuan Arti")
-                               .setContentText(questionList.get(currentQuestionIndex).textIndo)
+                        if (tvNyawa != null) tvNyawa.setText("❤️ " + nyawa);
+                        
+                        String hintAyat = questionList.get(currentQuestionIndex).jawaban;
+                        
+                        sDialog.setTitleText("Bantuan Ayat")
+                               .setContentText(hintAyat)
                                .setConfirmText("OK")
                                .setConfirmButtonBackgroundColor(COLOR_PRIMARY)
                                .showCancelButton(false)
                                .setConfirmClickListener(SweetAlertDialog::dismissWithAnimation)
                                .changeAlertType(SweetAlertDialog.NORMAL_TYPE);
+                        
+                        TextView contentText = sDialog.findViewById(cn.pedant.SweetAlert.R.id.content_text);
+                        if (contentText != null) {
+                            contentText.setTypeface(uthmaniFont);
+                            contentText.setTextSize(22);
+                        }
                     } else {
                         sDialog.setTitleText("Gagal")
                                .setContentText("Nyawa kamu tidak cukup!")
@@ -152,15 +174,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupDropZone() {
-        dropZoneCard.setOnDragListener((v, event) -> {
-            if (event.getAction() == DragEvent.ACTION_DROP) {
-                ClipData.Item item = event.getClipData().getItemAt(0);
-                String dragData = item.getText().toString();
-                tvHasilSusunan.setText(dragData);
-                checkAnswer(dragData);
-            }
-            return true;
-        });
+        if (dropZoneCard != null) {
+            dropZoneCard.setOnDragListener((v, event) -> {
+                if (event.getAction() == DragEvent.ACTION_DROP) {
+                    ClipData.Item item = event.getClipData().getItemAt(0);
+                    String dragData = item.getText().toString();
+                    if (tvHasilSusunan != null) tvHasilSusunan.setText(dragData);
+                    checkAnswer(dragData);
+                }
+                return true;
+            });
+        }
     }
 
     private void loadQuestions(List<Integer> surahIds, int limit) {
@@ -175,41 +199,66 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
                 String idParam = sbIds.length() > 0 ? sbIds.toString() : "1";
-                URL url = new URL(Config.URL_GET_SOAL + idParam + "&limit=" + limit);
+                String urlString = Config.URL_GET_SOAL + idParam + "&limit=" + limit;
+                
+                URL url = new URL(urlString);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                StringBuilder sb = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) sb.append(line);
-                JSONObject res = new JSONObject(sb.toString());
-                if (res.getString("status").equals("success")) {
-                    JSONArray arr = res.getJSONArray("data");
-                    questionList.clear();
-                    for (int i = 0; i < arr.length(); i++) {
-                        JSONObject obj = arr.getJSONObject(i);
-                        String audio = obj.optString("audio_url", "");
-                        int sId = obj.optInt("surah_id", 1);
-                        int vNum = obj.optInt("verse_number", 1);
-                        if (audio.isEmpty() || audio.equals("null")) {
-                            audio = String.format(Locale.US, "https://everyayah.com/data/Alafasy_128kbps/%03d%03d.mp3", sId, vNum);
+                conn.setConnectTimeout(15000);
+                conn.setReadTimeout(15000);
+                
+                int responseCode = conn.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) sb.append(line);
+                    reader.close();
+                    
+                    JSONObject res = new JSONObject(sb.toString());
+                    if (res.optString("status").equals("success")) {
+                        JSONArray arr = res.getJSONArray("data");
+                        questionList.clear();
+                        for (int i = 0; i < arr.length(); i++) {
+                            JSONObject obj = arr.getJSONObject(i);
+                            String audio = obj.optString("audio_url", "");
+                            int sId = obj.optInt("surah_id", 1);
+                            int vNum = obj.optInt("verse_number", 1);
+                            
+                            if (!audio.isEmpty() && !audio.startsWith("http") && !audio.equals("null")) {
+                                audio = Config.BASE_URL + "audio/" + audio;
+                            }
+                            if (audio.isEmpty() || audio.equals("null")) {
+                                audio = String.format(Locale.US, "https://everyayah.com/data/Alafasy_128kbps/%03d%03d.mp3", sId, vNum);
+                            }
+                            
+                            questionList.add(new Question(
+                                obj.optString("soal", ""), 
+                                obj.optString("jawaban_benar", ""), 
+                                audio,
+                                obj.optString("text_indo", "Terjemahan tidak tersedia"),
+                                obj.optString("pilihan_1", ""), 
+                                obj.optString("pilihan_2", ""), 
+                                obj.optString("pilihan_3", ""), 
+                                obj.optString("pilihan_4", ""),
+                                sId
+                            ));
                         }
-                        questionList.add(new Question(
-                            obj.getString("soal"), obj.getString("jawaban_benar"), audio,
-                            obj.optString("text_indo", "Terjemahan tidak tersedia"),
-                            obj.getString("pilihan_1"), obj.getString("pilihan_2"), obj.getString("pilihan_3"), obj.getString("pilihan_4"),
-                            sId
-                        ));
+                        Collections.shuffle(questionList);
+                        runOnUiThread(() -> {
+                            if (progressBar != null) progressBar.setVisibility(View.GONE);
+                            displayQuestion();
+                        });
+                    } else {
+                        throw new Exception(res.optString("message", "Gagal mengambil data"));
                     }
-                    Collections.shuffle(questionList);
-                    runOnUiThread(() -> {
-                        if (progressBar != null) progressBar.setVisibility(View.GONE);
-                        displayQuestion();
-                    });
+                } else {
+                    throw new Exception("HTTP Error: " + responseCode);
                 }
             } catch (Exception e) {
+                Log.e("MainActivity", "Error loadQuestions: " + e.getMessage());
                 runOnUiThread(() -> {
                     if (progressBar != null) progressBar.setVisibility(View.GONE);
-                    Toast.makeText(this, "Gagal memuat soal", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Gagal memuat soal: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
         });
@@ -221,36 +270,43 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
         Question q = questionList.get(currentQuestionIndex);
-        tvSoalArab.setText(q.soal);
-        tvHasilSusunan.setText("");
-        tvHasilSusunan.setHint("Tarik ayat lanjutan ke sini");
-        layoutPilihanKata.removeAllViews();
-        List<String> options = new ArrayList<>();
-        options.add(q.p1); options.add(q.p2); options.add(q.p3); options.add(q.p4);
-        Collections.shuffle(options);
-        for (String teks : options) {
-            TextView tv = new TextView(this);
-            tv.setText(teks);
-            tv.setTextSize(20);
-            tv.setTypeface(uthmaniFont);
-            tv.setTextDirection(View.TEXT_DIRECTION_RTL);
-            tv.setTextColor(Color.parseColor("#5D4037"));
-            tv.setPadding(30, 25, 30, 25);
-            tv.setBackgroundResource(R.drawable.bg_rounded_number);
-            FlexboxLayout.LayoutParams lp = new FlexboxLayout.LayoutParams(FlexboxLayout.LayoutParams.MATCH_PARENT, FlexboxLayout.LayoutParams.WRAP_CONTENT);
-            lp.setMargins(0, 15, 0, 15);
-            tv.setLayoutParams(lp);
-            tv.setOnLongClickListener(v -> {
-                ClipData data = ClipData.newPlainText("answer", teks);
-                v.startDragAndDrop(data, new View.DragShadowBuilder(v), v, 0);
-                return true;
-            });
-            layoutPilihanKata.addView(tv);
+        if (tvSoalArab != null) tvSoalArab.setText(q.soal);
+        if (tvHasilSusunan != null) {
+            tvHasilSusunan.setText("");
+            tvHasilSusunan.setHint("Tarik ayat lanjutan ke sini");
+        }
+        
+        if (layoutPilihanKata != null) {
+            layoutPilihanKata.removeAllViews();
+            List<String> options = new ArrayList<>();
+            options.add(q.p1); options.add(q.p2); options.add(q.p3); options.add(q.p4);
+            Collections.shuffle(options);
+            for (String teks : options) {
+                TextView tv = new TextView(this);
+                tv.setText(teks);
+                tv.setTextSize(20);
+                tv.setTypeface(uthmaniFont);
+                tv.setTextDirection(View.TEXT_DIRECTION_RTL);
+                tv.setTextColor(Color.parseColor("#5D4037"));
+                tv.setPadding(30, 25, 30, 25);
+                tv.setBackgroundResource(R.drawable.bg_rounded_number);
+                FlexboxLayout.LayoutParams lp = new FlexboxLayout.LayoutParams(FlexboxLayout.LayoutParams.MATCH_PARENT, FlexboxLayout.LayoutParams.WRAP_CONTENT);
+                lp.setMargins(0, 15, 0, 15);
+                tv.setLayoutParams(lp);
+                tv.setOnLongClickListener(v -> {
+                    ClipData data = ClipData.newPlainText("answer", teks);
+                    v.startDragAndDrop(data, new View.DragShadowBuilder(v), v, 0);
+                    return true;
+                });
+                layoutPilihanKata.addView(tv);
+            }
         }
         playAudio(q.audioUrl);
     }
 
     private void checkAnswer(String userAns) {
+        if (currentQuestionIndex >= questionList.size()) return;
+        
         Question q = questionList.get(currentQuestionIndex);
         if (userAns.trim().equals(q.jawaban.trim())) {
             comboStreak++;
@@ -262,23 +318,23 @@ public class MainActivity extends AppCompatActivity {
                 nyawa++;
                 Toast.makeText(this, "Combo " + comboStreak + "! Bonus +1 ❤️", Toast.LENGTH_SHORT).show();
             }
-            tvScore.setText("Skor: " + score);
-            tvNyawa.setText("❤️ " + nyawa);
-            tvComboStreak.setText("Combo: " + comboStreak + (comboStreak >= 3 ? " 🔥" : ""));
+            if (tvScore != null) tvScore.setText("Skor: " + score);
+            if (tvNyawa != null) tvNyawa.setText("❤️ " + nyawa);
+            if (tvComboStreak != null) tvComboStreak.setText("Combo: " + comboStreak + (comboStreak >= 3 ? " 🔥" : ""));
             playEffect(R.raw.benar);
             updateScoreOnServer(pointsEarned);
 
             if (comboStreak == 3 || comboStreak == 10 || comboStreak == 50 || comboStreak == 100) {
                 showCustomAlert(true, "STREAK 🔥 " + comboStreak, "Luar biasa! " + comboStreak + " kali benar beruntun!", false);
             } else {
-                showCustomAlert(true, "Maa Syaa Allah!", "Jawaban kamu benar.", false);
+                showCustomAlert(true, "Masyaallah!", "Jawaban kamu benar.", false);
             }
         } else {
             failedQuestions.add(currentQuestionIndex);
             nyawa--;
             comboStreak = 0;
-            tvNyawa.setText("❤️ " + nyawa);
-            tvComboStreak.setText("Combo: 0");
+            if (tvNyawa != null) tvNyawa.setText("❤️ " + nyawa);
+            if (tvComboStreak != null) tvComboStreak.setText("Combo: 0");
             playEffect(R.raw.salah);
             if (nyawa <= 0) endSession(true);
             else showCustomAlert(false, "Ayo Murajaah!", "Kurang tepat, ayo coba lagi.", false);
@@ -291,13 +347,15 @@ public class MainActivity extends AppCompatActivity {
                 URL url = new URL(Config.URL_SUBMIT_SCORE);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
+                conn.setConnectTimeout(5000);
                 conn.setDoOutput(true);
                 String postData = "user_id=" + userId + "&score=" + points + "&streak=" + comboStreak;
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
                 os.flush(); os.close();
-                conn.getInputStream();
-            } catch (Exception e) { Log.e("SERVER", "Gagal update skor"); }
+                conn.getInputStream().close();
+                conn.disconnect();
+            } catch (Exception e) { Log.e("SERVER", "Gagal update skor: " + e.getMessage()); }
         });
     }
 
@@ -307,13 +365,15 @@ public class MainActivity extends AppCompatActivity {
                 URL url = new URL(Config.URL_UPDATE_PROGRESS);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
+                conn.setConnectTimeout(5000);
                 conn.setDoOutput(true);
                 String postData = "user_id=" + userId + "&surah_id=" + surahId + "&juz_id=" + juzId + "&progress=" + progress;
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
                 os.flush(); os.close();
-                conn.getInputStream();
-            } catch (Exception e) { Log.e("SERVER", "Gagal update progres"); }
+                conn.getInputStream().close();
+                conn.disconnect();
+            } catch (Exception e) { Log.e("SERVER", "Gagal update progres: " + e.getMessage()); }
         });
     }
 
@@ -321,7 +381,6 @@ public class MainActivity extends AppCompatActivity {
         int totalQuestions = Math.max(1, questionList.size());
         int finalProgress = (correctCount * 100) / totalQuestions;
 
-        // SIMPAN PROGRES BERAPAPUN HASILNYA (MESKIPUN GAME OVER)
         Set<Integer> uniqueSurahs = new HashSet<>();
         for (Question q : questionList) uniqueSurahs.add(q.surahId);
         for (Integer sId : uniqueSurahs) updateProgressOnServer(sId, finalProgress);
@@ -343,49 +402,116 @@ public class MainActivity extends AppCompatActivity {
         TextView tvMessage = dialog.findViewById(R.id.dialogMessage);
         ImageView imgIcon = dialog.findViewById(R.id.dialogIcon);
         MaterialButton btn = dialog.findViewById(R.id.btnNext);
-        tvTitle.setText(title);
-        tvMessage.setText(message);
-        if (isFinish || title.contains("STREAK")) imgIcon.setImageResource(R.drawable.ic_star);
-        else imgIcon.setImageResource(isCorrect ? R.drawable.ic_star : R.drawable.ic_close);
-        btn.setText(isFinish ? "SELESAI" : "LANJUT");
-        btn.setOnClickListener(v -> {
-            dialog.dismiss();
-            if (isFinish) finish();
-            else if (isCorrect) { currentQuestionIndex++; displayQuestion(); }
-        });
+        
+        if (tvTitle != null) tvTitle.setText(title);
+        if (tvMessage != null) tvMessage.setText(message);
+        
+        if (imgIcon != null) {
+            if (isFinish || title.contains("STREAK")) imgIcon.setImageResource(R.drawable.ic_star);
+            else imgIcon.setImageResource(isCorrect ? R.drawable.ic_star : R.drawable.ic_close);
+        }
+        
+        if (btn != null) {
+            btn.setText(isFinish ? "SELESAI" : "LANJUT");
+            btn.setOnClickListener(v -> {
+                dialog.dismiss();
+                if (isFinish) finish();
+                else if (isCorrect) { currentQuestionIndex++; displayQuestion(); }
+            });
+        }
         dialog.show();
     }
 
-    private void playAudio(String url) {
-        try {
-            if (mediaPlayer != null) mediaPlayer.release();
-            mediaPlayer = new MediaPlayer();
-            mediaPlayer.setDataSource(url);
-            mediaPlayer.setVolume(qariVolume, qariVolume);
-            mediaPlayer.prepare();
-            PlaybackParams params = new PlaybackParams();
-            params.setSpeed(playbackSpeed);
-            mediaPlayer.setPlaybackParams(params);
+    private void toggleAudio(String url) {
+        if (mediaPlayer != null && mediaPlayer.isPlaying() && url.equals(currentPlayingUrl)) {
+            mediaPlayer.pause();
+            btnPutarSuara.setImageResource(android.R.drawable.ic_media_play);
+        } else if (mediaPlayer != null && !mediaPlayer.isPlaying() && url.equals(currentPlayingUrl)) {
             mediaPlayer.start();
-        } catch (Exception e) { Log.e("AUDIO", "Gagal putar audio"); }
+            btnPutarSuara.setImageResource(android.R.drawable.ic_media_pause);
+        } else {
+            playAudio(url);
+        }
+    }
+
+    private void playAudio(String url) {
+        Log.d("AUDIO", "Playing URL: " + url);
+        currentPlayingUrl = url;
+        Executors.newSingleThreadExecutor().execute(() -> {
+            try {
+                if (mediaPlayer == null) {
+                    mediaPlayer = new MediaPlayer();
+                    mediaPlayer.setAudioAttributes(new AudioAttributes.Builder()
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .setUsage(AudioAttributes.USAGE_MEDIA)
+                            .build());
+                } else {
+                    mediaPlayer.reset();
+                }
+                
+                Map<String, String> headers = new HashMap<>();
+                headers.put("User-Agent", "Mozilla/5.0 (Android)");
+                
+                mediaPlayer.setDataSource(this, android.net.Uri.parse(url), headers);
+                mediaPlayer.setVolume(qariVolume, qariVolume);
+                
+                mediaPlayer.setOnPreparedListener(mp -> {
+                    try {
+                        PlaybackParams params = new PlaybackParams();
+                        params.setSpeed(playbackSpeed);
+                        mp.setPlaybackParams(params);
+                        mp.start();
+                        runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_pause));
+                    } catch (Exception e) {
+                        mp.start();
+                        runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_pause));
+                    }
+                });
+                
+                mediaPlayer.setOnCompletionListener(mp -> {
+                    runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_play));
+                });
+
+                mediaPlayer.setOnErrorListener((mp, what, extra) -> {
+                    Log.e("AUDIO", "MediaPlayer Error - What: " + what + ", Extra: " + extra);
+                    runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_play));
+                    return true;
+                });
+                
+                mediaPlayer.prepareAsync(); 
+                
+            } catch (Exception e) { 
+                Log.e("AUDIO", "Gagal prepare audio: " + e.getMessage()); 
+                runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_play));
+            }
+        });
     }
 
     private void playEffect(int resId) {
         try {
-            if (effectPlayer != null) effectPlayer.release();
+            if (effectPlayer != null) {
+                effectPlayer.stop();
+                effectPlayer.release();
+            }
             effectPlayer = MediaPlayer.create(this, resId);
             if (effectPlayer != null) {
                 effectPlayer.setVolume(sfxVolume, sfxVolume);
                 effectPlayer.start();
             }
-        } catch (Exception e) { Log.e("AUDIO", "Gagal putar efek"); }
+        } catch (Exception e) { Log.e("AUDIO", "Gagal putar efek: " + e.getMessage()); }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        if (mediaPlayer != null) mediaPlayer.release();
-        if (effectPlayer != null) effectPlayer.release();
+        if (mediaPlayer != null) {
+            mediaPlayer.release();
+            mediaPlayer = null;
+        }
+        if (effectPlayer != null) {
+            effectPlayer.release();
+            effectPlayer = null;
+        }
     }
 
     private static class Question {
