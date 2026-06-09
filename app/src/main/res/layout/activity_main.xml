@@ -5,7 +5,6 @@
     android:layout_height="match_parent"
     android:background="@color/background">
 
-    <!-- Header -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/cardHeader"
         android:layout_width="match_parent"
@@ -83,7 +82,6 @@
             android:orientation="vertical"
             android:paddingBottom="20dp">
 
-            <!-- Soal Teks Arab -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardSoalArab"
                 android:layout_width="match_parent"
@@ -113,16 +111,61 @@
                         android:textSize="26sp"
                         android:textStyle="bold"
                         android:textDirection="rtl" />
+
+                    <TextView
+                        android:id="@+id/tvArtiAyat"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="-"
+                        android:textStyle="italic"
+                        android:textColor="@color/text_variant"
+                        android:textSize="14sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Drop Zone (Target) -->
+            <LinearLayout
+                android:id="@+id/layoutAudio"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="12dp">
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="64dp"
+                    android:layout_height="64dp"
+                    app:cardCornerRadius="32dp"
+                    app:cardBackgroundColor="@color/primary"
+                    app:cardElevation="6dp">
+                    <ImageButton
+                        android:id="@+id/btnPutarSuara"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="?android:attr/selectableItemBackground"
+                        android:src="@android:drawable/ic_media_play"
+                        app:tint="@color/white" />
+                </com.google.android.material.card.MaterialCardView>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvDetailAyat"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:gravity="center"
+                android:text="-"
+                android:textColor="@color/text_main"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/dropZoneCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:minHeight="110dp"
-                android:layout_margin="20dp"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginBottom="20dp"
                 app:cardBackgroundColor="@color/surface_variant"
                 app:cardCornerRadius="20dp"
                 app:strokeColor="@color/secondary"
@@ -143,30 +186,6 @@
                     android:textDirection="rtl" />
             </com.google.android.material.card.MaterialCardView>
 
-            <!-- Audio Player -->
-            <LinearLayout
-                android:id="@+id/layoutAudio"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:layout_marginBottom="24dp">
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="64dp"
-                    android:layout_height="64dp"
-                    app:cardBackgroundColor="@color/primary"
-                    app:cardCornerRadius="32dp"
-                    app:cardElevation="6dp">
-                    <ImageButton
-                        android:id="@+id/btnPutarSuara"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:background="?android:attr/selectableItemBackground"
-                        android:src="@android:drawable/ic_media_play"
-                        app:tint="@color/white" />
-                </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
-
-            <!-- Loading Indicator -->
             <ProgressBar
                 android:id="@+id/progressBar"
                 android:layout_width="wrap_content"
@@ -175,7 +194,6 @@
                 android:layout_margin="20dp"
                 android:visibility="gone" />
 
-            <!-- Pilihan Jawaban -->
             <com.google.android.flexbox.FlexboxLayout
                 android:id="@+id/layoutPilihanKata"
                 android:layout_width="match_parent"
@@ -188,7 +206,6 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- Tombol Aksi Bawah -->
     <LinearLayout
         android:id="@+id/layoutAksiBawah"
         android:layout_width="match_parent"

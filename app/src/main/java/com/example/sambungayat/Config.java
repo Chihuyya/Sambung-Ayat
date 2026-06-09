@@ -1,7 +1,7 @@
 package com.example.sambungayat;
 
 public class Config {
-    public static final String IP_SERVER = "192.168.1.11";
+    public static final String IP_SERVER = "192.168.1.24";
     public static final String BASE_URL = "http://" + IP_SERVER + "/api_sambung_ayat/";
 
     public static final String URL_GET_AYAT = BASE_URL + "get_ayat.php?surah_id=";

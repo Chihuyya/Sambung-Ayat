@@ -43,12 +43,12 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
-    private TextView tvSurahInfo, tvNyawa, tvScore, tvComboStreak, tvSoalArab, tvHasilSusunan;
+    private TextView tvSurahInfo, tvNyawa, tvScore, tvComboStreak, tvSoalArab, tvHasilSusunan, tvArtiAyat, tvDetailAyat;
     private FlexboxLayout layoutPilihanKata;
     private ImageButton btnPutarSuara;
     private View progressBar, dropZoneCard;
     private MaterialButton btnHint;
-    
+
     private List<Question> questionList = new ArrayList<>();
     private int currentQuestionIndex = 0;
     private int score = 0;
@@ -56,9 +56,9 @@ public class MainActivity extends AppCompatActivity {
     private int comboStreak = 0;
     private int correctCount = 0;
     private int userId;
-    private int juzId = 1; 
+    private int juzId = 1;
     private Set<Integer> failedQuestions = new HashSet<>();
-    
+
     private MediaPlayer mediaPlayer, effectPlayer;
     private Typeface uthmaniFont;
     private final int COLOR_PRIMARY = Color.parseColor("#5D4037");
@@ -68,12 +68,15 @@ public class MainActivity extends AppCompatActivity {
     private float playbackSpeed = 1.0f;
     private String currentPlayingUrl = "";
 
+    // Simpan streak tertinggi yang dicapai user dalam satu sesi ini untuk dikirim ke server
+    private int maxStreakInSession = 0;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        try { uthmaniFont = ResourcesCompat.getFont(this, R.font.uthmani); } 
+        try { uthmaniFont = ResourcesCompat.getFont(this, R.font.uthmani); }
         catch (Exception e) { uthmaniFont = Typeface.DEFAULT; }
 
         SharedPreferences sharedPref = getSharedPreferences("SambungAyatPref", Context.MODE_PRIVATE);
@@ -86,6 +89,8 @@ public class MainActivity extends AppCompatActivity {
         tvComboStreak = findViewById(R.id.tvComboStreak);
         tvSoalArab = findViewById(R.id.tvSoalArab);
         tvHasilSusunan = findViewById(R.id.tvHasilSusunan);
+        tvArtiAyat = findViewById(R.id.tvArtiAyat);
+        tvDetailAyat = findViewById(R.id.tvDetailAyat);
         layoutPilihanKata = findViewById(R.id.layoutPilihanKata);
         btnPutarSuara = findViewById(R.id.btnPutarSuara);
         progressBar = findViewById(R.id.progressBar);
@@ -100,12 +105,12 @@ public class MainActivity extends AppCompatActivity {
         String surahName = getIntent().getStringExtra("SURAH_NAME");
 
         if (tvSurahInfo != null) tvSurahInfo.setText(surahName != null ? surahName : "Sambung Ayat");
-        
+
         View btnMenyerah = findViewById(R.id.btnMenyerah);
         if (btnMenyerah != null) btnMenyerah.setOnClickListener(v -> finish());
-        
+
         if (btnHint != null) btnHint.setOnClickListener(v -> showHintWarning());
-        
+
         if (btnPutarSuara != null) {
             btnPutarSuara.setOnClickListener(v -> {
                 if (!questionList.isEmpty() && currentQuestionIndex < questionList.size()) {
@@ -113,7 +118,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
-        
+
         setupDropZone();
         loadQuestions(selectedSurahIds, limit);
         loadAudioSettings();
@@ -143,20 +148,20 @@ public class MainActivity extends AppCompatActivity {
                 .setCancelText("Batal")
                 .setConfirmButtonBackgroundColor(COLOR_PRIMARY)
                 .setConfirmClickListener(sDialog -> {
-                    if (nyawa > 1) {
+                    if (nyawa >= 1) {
                         nyawa--;
                         if (tvNyawa != null) tvNyawa.setText("❤️ " + nyawa);
-                        
+
                         String hintAyat = questionList.get(currentQuestionIndex).jawaban;
-                        
+
                         sDialog.setTitleText("Bantuan Ayat")
-                               .setContentText(hintAyat)
-                               .setConfirmText("OK")
-                               .setConfirmButtonBackgroundColor(COLOR_PRIMARY)
-                               .showCancelButton(false)
-                               .setConfirmClickListener(SweetAlertDialog::dismissWithAnimation)
-                               .changeAlertType(SweetAlertDialog.NORMAL_TYPE);
-                        
+                                .setContentText(hintAyat)
+                                .setConfirmText("OK")
+                                .setConfirmButtonBackgroundColor(COLOR_PRIMARY)
+                                .showCancelButton(false)
+                                .setConfirmClickListener(SweetAlertDialog::dismissWithAnimation)
+                                .changeAlertType(SweetAlertDialog.NORMAL_TYPE);
+
                         TextView contentText = sDialog.findViewById(cn.pedant.SweetAlert.R.id.content_text);
                         if (contentText != null) {
                             contentText.setTypeface(uthmaniFont);
@@ -164,11 +169,11 @@ public class MainActivity extends AppCompatActivity {
                         }
                     } else {
                         sDialog.setTitleText("Gagal")
-                               .setContentText("Nyawa kamu tidak cukup!")
-                               .setConfirmText("OK")
-                               .setConfirmButtonBackgroundColor(COLOR_PRIMARY)
-                               .showCancelButton(false)
-                               .changeAlertType(SweetAlertDialog.ERROR_TYPE);
+                                .setContentText("Nyawa kamu tidak cukup!")
+                                .setConfirmText("OK")
+                                .setConfirmButtonBackgroundColor(COLOR_PRIMARY)
+                                .showCancelButton(false)
+                                .changeAlertType(SweetAlertDialog.ERROR_TYPE);
                     }
                 }).show();
     }
@@ -200,12 +205,12 @@ public class MainActivity extends AppCompatActivity {
                 }
                 String idParam = sbIds.length() > 0 ? sbIds.toString() : "1";
                 String urlString = Config.URL_GET_SOAL + idParam + "&limit=" + limit;
-                
+
                 URL url = new URL(urlString);
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setConnectTimeout(15000);
                 conn.setReadTimeout(15000);
-                
+
                 int responseCode = conn.getResponseCode();
                 if (responseCode == HttpURLConnection.HTTP_OK) {
                     BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
@@ -213,7 +218,7 @@ public class MainActivity extends AppCompatActivity {
                     String line;
                     while ((line = reader.readLine()) != null) sb.append(line);
                     reader.close();
-                    
+
                     JSONObject res = new JSONObject(sb.toString());
                     if (res.optString("status").equals("success")) {
                         JSONArray arr = res.getJSONArray("data");
@@ -223,24 +228,26 @@ public class MainActivity extends AppCompatActivity {
                             String audio = obj.optString("audio_url", "");
                             int sId = obj.optInt("surah_id", 1);
                             int vNum = obj.optInt("verse_number", 1);
-                            
+
                             if (!audio.isEmpty() && !audio.startsWith("http") && !audio.equals("null")) {
                                 audio = Config.BASE_URL + "audio/" + audio;
                             }
                             if (audio.isEmpty() || audio.equals("null")) {
                                 audio = String.format(Locale.US, "https://everyayah.com/data/Alafasy_128kbps/%03d%03d.mp3", sId, vNum);
                             }
-                            
+
                             questionList.add(new Question(
-                                obj.optString("soal", ""), 
-                                obj.optString("jawaban_benar", ""), 
-                                audio,
-                                obj.optString("text_indo", "Terjemahan tidak tersedia"),
-                                obj.optString("pilihan_1", ""), 
-                                obj.optString("pilihan_2", ""), 
-                                obj.optString("pilihan_3", ""), 
-                                obj.optString("pilihan_4", ""),
-                                sId
+                                    obj.optString("soal", ""),
+                                    obj.optString("jawaban_benar", ""),
+                                    audio,
+                                    obj.optString("text_indo", "Terjemahan tidak tersedia"),
+                                    obj.optString("pilihan_1", ""),
+                                    obj.optString("pilihan_2", ""),
+                                    obj.optString("pilihan_3", ""),
+                                    obj.optString("pilihan_4", ""),
+                                    sId,
+                                    vNum,
+                                    obj.optString("nama_surat", "Surat")
                             ));
                         }
                         Collections.shuffle(questionList);
@@ -271,11 +278,18 @@ public class MainActivity extends AppCompatActivity {
         }
         Question q = questionList.get(currentQuestionIndex);
         if (tvSoalArab != null) tvSoalArab.setText(q.soal);
+
+        if (tvArtiAyat != null) tvArtiAyat.setText("\"" + q.textIndo + "\"");
+
+        if (tvDetailAyat != null) {
+            tvDetailAyat.setText("Surah " + q.namaSurat + " • Ayat " + q.verseNumber);
+        }
+
         if (tvHasilSusunan != null) {
             tvHasilSusunan.setText("");
             tvHasilSusunan.setHint("Tarik ayat lanjutan ke sini");
         }
-        
+
         if (layoutPilihanKata != null) {
             layoutPilihanKata.removeAllViews();
             List<String> options = new ArrayList<>();
@@ -306,14 +320,24 @@ public class MainActivity extends AppCompatActivity {
 
     private void checkAnswer(String userAns) {
         if (currentQuestionIndex >= questionList.size()) return;
-        
+
+        if (mediaPlayer != null && mediaPlayer.isPlaying()) {
+            mediaPlayer.pause();
+            runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_play));
+        }
+
         Question q = questionList.get(currentQuestionIndex);
         if (userAns.trim().equals(q.jawaban.trim())) {
             comboStreak++;
+
+            if (comboStreak > maxStreakInSession) {
+                maxStreakInSession = comboStreak;
+            }
+
             int pointsEarned = (comboStreak >= 5) ? 20 : 10;
             score += pointsEarned;
             if (!failedQuestions.contains(currentQuestionIndex)) correctCount++;
-            
+
             if (comboStreak % 5 == 0 && nyawa < 3) {
                 nyawa++;
                 Toast.makeText(this, "Combo " + comboStreak + "! Bonus +1 ❤️", Toast.LENGTH_SHORT).show();
@@ -322,7 +346,6 @@ public class MainActivity extends AppCompatActivity {
             if (tvNyawa != null) tvNyawa.setText("❤️ " + nyawa);
             if (tvComboStreak != null) tvComboStreak.setText("Combo: " + comboStreak + (comboStreak >= 3 ? " 🔥" : ""));
             playEffect(R.raw.benar);
-            updateScoreOnServer(pointsEarned);
 
             if (comboStreak == 3 || comboStreak == 10 || comboStreak == 50 || comboStreak == 100) {
                 showCustomAlert(true, "STREAK 🔥 " + comboStreak, "Luar biasa! " + comboStreak + " kali benar beruntun!", false);
@@ -341,7 +364,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void updateScoreOnServer(int points) {
+    private void updateScoreOnServer(int totalScore, int maxStreak) {
         Executors.newSingleThreadExecutor().execute(() -> {
             try {
                 URL url = new URL(Config.URL_SUBMIT_SCORE);
@@ -349,11 +372,19 @@ public class MainActivity extends AppCompatActivity {
                 conn.setRequestMethod("POST");
                 conn.setConnectTimeout(5000);
                 conn.setDoOutput(true);
-                String postData = "user_id=" + userId + "&score=" + points + "&streak=" + comboStreak;
+
+                // HEADER PENTING: Mendefinisikan format body request sebagai form data biasa agar terbaca oleh PHP $_POST
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+                String postData = "user_id=" + userId + "&score=" + totalScore + "&streak=" + maxStreak;
+
                 OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes());
+                os.write(postData.getBytes("UTF-8"));
                 os.flush(); os.close();
-                conn.getInputStream().close();
+
+                // Memicu koneksi agar mengeksekusi request sepenuhnya
+                int responseCode = conn.getResponseCode();
+                Log.d("SERVER_SCORE", "Response Code: " + responseCode);
                 conn.disconnect();
             } catch (Exception e) { Log.e("SERVER", "Gagal update skor: " + e.getMessage()); }
         });
@@ -367,11 +398,15 @@ public class MainActivity extends AppCompatActivity {
                 conn.setRequestMethod("POST");
                 conn.setConnectTimeout(5000);
                 conn.setDoOutput(true);
+
+                // Menambahkan header form-urlencoded ke progres juga agar stabil
+                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
                 String postData = "user_id=" + userId + "&surah_id=" + surahId + "&juz_id=" + juzId + "&progress=" + progress;
                 OutputStream os = conn.getOutputStream();
-                os.write(postData.getBytes());
+                os.write(postData.getBytes("UTF-8"));
                 os.flush(); os.close();
-                conn.getInputStream().close();
+                conn.getResponseCode();
                 conn.disconnect();
             } catch (Exception e) { Log.e("SERVER", "Gagal update progres: " + e.getMessage()); }
         });
@@ -385,10 +420,15 @@ public class MainActivity extends AppCompatActivity {
         for (Question q : questionList) uniqueSurahs.add(q.surahId);
         for (Integer sId : uniqueSurahs) updateProgressOnServer(sId, finalProgress);
 
+        // Kirim akumulasi total skor latihan dan streak tertinggi sekaligus ke server PHP saat sesi berakhir
+        if (score > 0) {
+            updateScoreOnServer(score, maxStreakInSession);
+        }
+
         String title = isGameOver ? "Yaaah!" : "Selesai!";
-        String message = isGameOver ? "Nyawa kamu habis!\nProgres: " + finalProgress + "%" 
-                                    : "Alhamdulillah! Kamu menyelesaikan muraajah ini.\nBenar: " + correctCount + "/" + totalQuestions + "\nProgres: " + finalProgress + "%";
-        
+        String message = isGameOver ? "Nyawa kamu habis!\nProgres: " + finalProgress + "%"
+                : "Alhamdulillah! Kamu menyelesaikan muraajah ini.\nBenar: " + correctCount + "/" + totalQuestions + "\nProgres: " + finalProgress + "%";
+
         showCustomAlert(!isGameOver, title, message, true);
     }
 
@@ -402,15 +442,15 @@ public class MainActivity extends AppCompatActivity {
         TextView tvMessage = dialog.findViewById(R.id.dialogMessage);
         ImageView imgIcon = dialog.findViewById(R.id.dialogIcon);
         MaterialButton btn = dialog.findViewById(R.id.btnNext);
-        
+
         if (tvTitle != null) tvTitle.setText(title);
         if (tvMessage != null) tvMessage.setText(message);
-        
+
         if (imgIcon != null) {
             if (isFinish || title.contains("STREAK")) imgIcon.setImageResource(R.drawable.ic_star);
             else imgIcon.setImageResource(isCorrect ? R.drawable.ic_star : R.drawable.ic_close);
         }
-        
+
         if (btn != null) {
             btn.setText(isFinish ? "SELESAI" : "LANJUT");
             btn.setOnClickListener(v -> {
@@ -425,10 +465,10 @@ public class MainActivity extends AppCompatActivity {
     private void toggleAudio(String url) {
         if (mediaPlayer != null && mediaPlayer.isPlaying() && url.equals(currentPlayingUrl)) {
             mediaPlayer.pause();
-            btnPutarSuara.setImageResource(android.R.drawable.ic_media_play);
+            runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_play));
         } else if (mediaPlayer != null && !mediaPlayer.isPlaying() && url.equals(currentPlayingUrl)) {
             mediaPlayer.start();
-            btnPutarSuara.setImageResource(android.R.drawable.ic_media_pause);
+            runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_pause));
         } else {
             playAudio(url);
         }
@@ -448,13 +488,13 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     mediaPlayer.reset();
                 }
-                
+
                 Map<String, String> headers = new HashMap<>();
                 headers.put("User-Agent", "Mozilla/5.0 (Android)");
-                
+
                 mediaPlayer.setDataSource(this, android.net.Uri.parse(url), headers);
                 mediaPlayer.setVolume(qariVolume, qariVolume);
-                
+
                 mediaPlayer.setOnPreparedListener(mp -> {
                     try {
                         PlaybackParams params = new PlaybackParams();
@@ -467,7 +507,7 @@ public class MainActivity extends AppCompatActivity {
                         runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_pause));
                     }
                 });
-                
+
                 mediaPlayer.setOnCompletionListener(mp -> {
                     runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_play));
                 });
@@ -477,11 +517,11 @@ public class MainActivity extends AppCompatActivity {
                     runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_play));
                     return true;
                 });
-                
-                mediaPlayer.prepareAsync(); 
-                
-            } catch (Exception e) { 
-                Log.e("AUDIO", "Gagal prepare audio: " + e.getMessage()); 
+
+                mediaPlayer.prepareAsync();
+
+            } catch (Exception e) {
+                Log.e("AUDIO", "Gagal prepare audio: " + e.getMessage());
                 runOnUiThread(() -> btnPutarSuara.setImageResource(android.R.drawable.ic_media_play));
             }
         });
@@ -515,12 +555,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private static class Question {
-        String soal, jawaban, audioUrl, textIndo, p1, p2, p3, p4;
-        int surahId;
-        public Question(String s, String j, String a, String t, String p1, String p2, String p3, String p4, int surahId) {
+        String soal, jawaban, audioUrl, textIndo, p1, p2, p3, p4, namaSurat;
+        int surahId, verseNumber;
+        public Question(String s, String j, String a, String t, String p1, String p2, String p3, String p4, int surahId, int verseNumber, String namaSurat) {
             this.soal = s; this.jawaban = j; this.audioUrl = a; this.textIndo = t;
             this.p1 = p1; this.p2 = p2; this.p3 = p3; this.p4 = p4;
-            this.surahId = surahId;
+            this.surahId = surahId; this.verseNumber = verseNumber; this.namaSurat = namaSurat;
         }
     }
 }
