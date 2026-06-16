@@ -58,6 +58,9 @@ public class MainActivity extends AppCompatActivity {
     private int userId;
     private int juzId = 1;
     private Set<Integer> failedQuestions = new HashSet<>();
+    private Map<Integer, Integer> correctCountPerSurah = new HashMap<>();
+    private Map<Integer, Integer> surahTotalVersesMap = new HashMap<>();
+    private boolean isHintUsed = false;
 
     private MediaPlayer mediaPlayer, effectPlayer;
     private Typeface uthmaniFont;
@@ -82,6 +85,11 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences sharedPref = getSharedPreferences("SambungAyatPref", Context.MODE_PRIVATE);
         userId = sharedPref.getInt("USER_ID", 0);
         juzId = getIntent().getIntExtra("JUZ_ID", 1);
+
+        HashMap<Integer, Integer> receivedMap = (HashMap<Integer, Integer>) getIntent().getSerializableExtra("SURAH_TOTAL_VERSES_MAP");
+        if (receivedMap != null) {
+            surahTotalVersesMap.putAll(receivedMap);
+        }
 
         tvSurahInfo = findViewById(R.id.tvSurahInfo);
         tvNyawa = findViewById(R.id.tvNyawa);
@@ -150,6 +158,7 @@ public class MainActivity extends AppCompatActivity {
                 .setConfirmClickListener(sDialog -> {
                     if (nyawa >= 1) {
                         nyawa--;
+                        isHintUsed = true;
                         if (tvNyawa != null) tvNyawa.setText("❤️ " + nyawa);
 
                         String hintAyat = questionList.get(currentQuestionIndex).jawaban;
@@ -276,6 +285,7 @@ public class MainActivity extends AppCompatActivity {
             endSession(false);
             return;
         }
+        isHintUsed = false;
         Question q = questionList.get(currentQuestionIndex);
         if (tvSoalArab != null) tvSoalArab.setText(q.soal);
 
@@ -328,29 +338,40 @@ public class MainActivity extends AppCompatActivity {
 
         Question q = questionList.get(currentQuestionIndex);
         if (userAns.trim().equals(q.jawaban.trim())) {
-            comboStreak++;
+            
+            if (!isHintUsed) {
+                comboStreak++;
+                if (comboStreak > maxStreakInSession) {
+                    maxStreakInSession = comboStreak;
+                }
+                int pointsEarned = (comboStreak >= 5) ? 20 : 10;
+                score += pointsEarned;
 
-            if (comboStreak > maxStreakInSession) {
-                maxStreakInSession = comboStreak;
+                if (comboStreak % 5 == 0 && nyawa < 3) {
+                    nyawa++;
+                    Toast.makeText(this, "Combo " + comboStreak + "! Bonus +1 ❤️", Toast.LENGTH_SHORT).show();
+                }
+            } else {
+                comboStreak = 0; // Menggunakan bantuan memutus streak
+                Toast.makeText(this, "Bantuan digunakan: Tidak ada poin tambahan.", Toast.LENGTH_SHORT).show();
+            }
+            
+            if (!failedQuestions.contains(currentQuestionIndex)) {
+                correctCount++;
+                int count = correctCountPerSurah.getOrDefault(q.surahId, 0);
+                correctCountPerSurah.put(q.surahId, count + 1);
             }
 
-            int pointsEarned = (comboStreak >= 5) ? 20 : 10;
-            score += pointsEarned;
-            if (!failedQuestions.contains(currentQuestionIndex)) correctCount++;
-
-            if (comboStreak % 5 == 0 && nyawa < 3) {
-                nyawa++;
-                Toast.makeText(this, "Combo " + comboStreak + "! Bonus +1 ❤️", Toast.LENGTH_SHORT).show();
-            }
             if (tvScore != null) tvScore.setText("Skor: " + score);
             if (tvNyawa != null) tvNyawa.setText("❤️ " + nyawa);
             if (tvComboStreak != null) tvComboStreak.setText("Combo: " + comboStreak + (comboStreak >= 3 ? " 🔥" : ""));
             playEffect(R.raw.benar);
 
-            if (comboStreak == 3 || comboStreak == 10 || comboStreak == 50 || comboStreak == 100) {
+            if (!isHintUsed && (comboStreak == 3 || comboStreak == 10 || comboStreak == 50 || comboStreak == 100)) {
                 showCustomAlert(true, "STREAK 🔥 " + comboStreak, "Luar biasa! " + comboStreak + " kali benar beruntun!", false);
             } else {
-                showCustomAlert(true, "Masyaallah!", "Jawaban kamu benar.", false);
+                showCustomAlert(true, isHintUsed ? "Alhamdulillah!" : "Masyaallah!", 
+                        isHintUsed ? "Jawaban benar (dengan bantuan)." : "Jawaban kamu benar.", false);
             }
         } else {
             failedQuestions.add(currentQuestionIndex);
@@ -414,11 +435,27 @@ public class MainActivity extends AppCompatActivity {
 
     private void endSession(boolean isGameOver) {
         int totalQuestions = Math.max(1, questionList.size());
-        int finalProgress = (correctCount * 100) / totalQuestions;
-
-        Set<Integer> uniqueSurahs = new HashSet<>();
-        for (Question q : questionList) uniqueSurahs.add(q.surahId);
-        for (Integer sId : uniqueSurahs) updateProgressOnServer(sId, finalProgress);
+        
+        int finalProgress = 0;
+        if (!surahTotalVersesMap.isEmpty()) {
+            for (Map.Entry<Integer, Integer> entry : surahTotalVersesMap.entrySet()) {
+                int sId = entry.getKey();
+                int totalV = entry.getValue();
+                int correct = correctCountPerSurah.getOrDefault(sId, 0);
+                
+                int p = (correct * 100) / Math.max(1, totalV);
+                if (p == 0 && correct > 0) p = 1; // Minimal 1% jika ada yang benar
+                updateProgressOnServer(sId, p);
+                
+                // Jika hanya satu surah, gunakan progres aslinya untuk tampilan
+                if (surahTotalVersesMap.size() == 1) finalProgress = p;
+            }
+        }
+        
+        // Jika campuran, gunakan rata-rata progres sesi atau progres global
+        if (surahTotalVersesMap.size() != 1) {
+            finalProgress = (correctCount * 100) / totalQuestions;
+        }
 
         // Kirim akumulasi total skor latihan dan streak tertinggi sekaligus ke server PHP saat sesi berakhir
         if (score > 0) {
@@ -426,8 +463,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         String title = isGameOver ? "Yaaah!" : "Selesai!";
-        String message = isGameOver ? "Nyawa kamu habis!\nProgres: " + finalProgress + "%"
-                : "Alhamdulillah! Kamu menyelesaikan muraajah ini.\nBenar: " + correctCount + "/" + totalQuestions + "\nProgres: " + finalProgress + "%";
+        String message = isGameOver ? "Nyawa kamu habis!\nProgres Surah: " + finalProgress + "%"
+                : "Alhamdulillah! Kamu menyelesaikan muraajah ini.\nBenar: " + correctCount + "/" + totalQuestions + "\nProgres Surah: " + finalProgress + "%";
 
         showCustomAlert(!isGameOver, title, message, true);
     }

@@ -54,6 +54,7 @@ public class LoginActivity extends AppCompatActivity {
         MaterialButton btnLogin = findViewById(R.id.btnLogin);
         MaterialButton btnGoogleLogin = findViewById(R.id.btnGoogleLogin);
         TextView tvRegister = findViewById(R.id.tvRegister);
+        TextView tvForgotPassword = findViewById(R.id.tvForgotPassword);
 
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
                 .requestIdToken(getString(R.string.default_web_client_id))
@@ -64,6 +65,7 @@ public class LoginActivity extends AppCompatActivity {
         btnLogin.setOnClickListener(v -> performLogin());
         btnGoogleLogin.setOnClickListener(v -> signInWithGoogle());
         tvRegister.setOnClickListener(v -> startActivity(new Intent(this, RegisterActivity.class)));
+        tvForgotPassword.setOnClickListener(v -> startActivity(new Intent(this, ForgotPasswordActivity.class)));
     }
 
     private void signInWithGoogle() {

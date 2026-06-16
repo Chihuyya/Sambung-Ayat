@@ -99,6 +99,8 @@ public class SurahAdapter extends RecyclerView.Adapter<SurahAdapter.ViewHolder> 
 
     public List<Integer> getSelectedSurahIds() { return selectedSurahIds; }
     
+    public List<Surah> getSurahList() { return surahListMaster; }
+
     public String getSelectedSurahName() {
         if (selectedSurahIds.size() == 1) {
             for (Surah s : surahListMaster) if (selectedSurahIds.contains(s.getId())) return s.getName();

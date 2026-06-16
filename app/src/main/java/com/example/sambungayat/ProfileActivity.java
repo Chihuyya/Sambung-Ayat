@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -21,7 +22,7 @@ import java.util.concurrent.Executors;
 
 public class ProfileActivity extends AppCompatActivity {
 
-    private TextView tvProfileName, tvProfileEmail, tvStatSurah, tvStatPerfect, tvStatStreak, tvProfileLevel;
+    private TextView tvProfileName, tvProfileEmail, tvProfilePhone, tvStatSurah, tvStatPerfect, tvStatStreak, tvProfileLevel;
     private ImageView ivProfileAvatar;
     private int userId;
     private final int COLOR_PRIMARY = Color.parseColor("#5D4037");
@@ -34,6 +35,7 @@ public class ProfileActivity extends AppCompatActivity {
         ivProfileAvatar = findViewById(R.id.ivProfileAvatar);
         tvProfileName = findViewById(R.id.tvProfileName);
         tvProfileEmail = findViewById(R.id.tvProfileEmail);
+        tvProfilePhone = findViewById(R.id.tvProfilePhone);
         tvProfileLevel = findViewById(R.id.tvProfileLevel);
         tvStatSurah = findViewById(R.id.tvStatSurah);
         tvStatPerfect = findViewById(R.id.tvStatPerfect);
@@ -106,6 +108,18 @@ public class ProfileActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         try {
                             if (tvProfileName != null) tvProfileName.setText(data.optString("username", "Pemain"));
+                            if (tvProfileEmail != null) tvProfileEmail.setText(data.optString("email", ""));
+                            
+                            String phone = data.optString("phone", "");
+                            if (tvProfilePhone != null) {
+                                if (!phone.isEmpty() && !phone.equals("null")) {
+                                    tvProfilePhone.setText(phone);
+                                    tvProfilePhone.setVisibility(View.VISIBLE);
+                                } else {
+                                    tvProfilePhone.setVisibility(View.GONE);
+                                }
+                            }
+
                             if (tvProfileLevel != null) tvProfileLevel.setText(data.optString("level", "Penghafal Pemula"));
                             if (tvStatSurah != null) tvStatSurah.setText(String.valueOf(data.optInt("total_surah", 0)));
                             if (tvStatPerfect != null) tvStatPerfect.setText(String.valueOf(data.optInt("total_perfect", 0)));
