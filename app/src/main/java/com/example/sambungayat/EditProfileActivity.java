@@ -66,6 +66,7 @@ public class EditProfileActivity extends AppCompatActivity {
                     runOnUiThread(() -> {
                         etFullName.setText(data.optString("username"));
                         etEmail.setText(data.optString("email"));
+                        etPhone.setText(data.optString("phone")); // Menampilkan nomor HP jika ada
                     });
                 }
             } catch (Exception e) { e.printStackTrace(); }
@@ -75,6 +76,7 @@ public class EditProfileActivity extends AppCompatActivity {
     private void saveProfileChanges() {
         String name = etFullName.getText().toString().trim();
         String email = etEmail.getText().toString().trim();
+        String phone = etPhone.getText().toString().trim();
 
         if (TextUtils.isEmpty(name) || TextUtils.isEmpty(email)) {
             Toast.makeText(this, "Nama dan Email harus diisi", Toast.LENGTH_SHORT).show();
@@ -93,9 +95,12 @@ public class EditProfileActivity extends AppCompatActivity {
                 conn.setRequestMethod("POST");
                 conn.setDoOutput(true);
 
+                // Menambahkan mode=edit_profile agar sesuai dengan logika PHP Anda
                 String postData = "user_id=" + userId +
+                        "&mode=edit_profile" +
                         "&username=" + URLEncoder.encode(name, "UTF-8") +
-                        "&email=" + URLEncoder.encode(email, "UTF-8");
+                        "&email=" + URLEncoder.encode(email, "UTF-8") +
+                        "&phone=" + URLEncoder.encode(phone, "UTF-8");
 
                 OutputStream os = conn.getOutputStream();
                 os.write(postData.getBytes());
@@ -118,10 +123,12 @@ public class EditProfileActivity extends AppCompatActivity {
                                     sDialog.dismissWithAnimation();
                                     finish();
                                 }).show();
+                    } else {
+                        Toast.makeText(this, res.optString("message", "Gagal memperbarui profil"), Toast.LENGTH_SHORT).show();
                     }
                 });
             } catch (Exception e) {
-                runOnUiThread(() -> { pDialog.dismissWithAnimation(); Toast.makeText(this, "Gagal simpan", Toast.LENGTH_SHORT).show(); });
+                runOnUiThread(() -> { pDialog.dismissWithAnimation(); Toast.makeText(this, "Gagal koneksi ke server", Toast.LENGTH_SHORT).show(); });
             }
         });
     }

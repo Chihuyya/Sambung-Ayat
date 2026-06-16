@@ -1,7 +1,7 @@
 package com.example.sambungayat;
 
 public class Config {
-    public static final String IP_SERVER = "192.168.1.24";
+    public static final String IP_SERVER = "192.168.1.11";
     public static final String BASE_URL = "http://" + IP_SERVER + "/api_sambung_ayat/";
 
     public static final String URL_GET_AYAT = BASE_URL + "get_ayat.php?surah_id=";
@@ -17,4 +17,5 @@ public class Config {
     public static final String URL_UPDATE_PROFILE = BASE_URL + "update_profile.php";
     public static final String URL_LOGIN_GOOGLE = BASE_URL + "login_google.php";
     public static final String URL_UPDATE_PERFECT = BASE_URL + "update_perfect.php";
+    public static final String URL_RESET_PASSWORD = BASE_URL + "reset_password.php";
 }

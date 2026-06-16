@@ -22,7 +22,9 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 
 public class PilihSurahActivity extends AppCompatActivity {
@@ -93,7 +95,7 @@ public class PilihSurahActivity extends AppCompatActivity {
 
         tvQuestionCount.setText(String.valueOf(currentQuestionCount));
         btnPlus.setOnClickListener(v -> { if (currentQuestionCount < 10) { currentQuestionCount++; tvQuestionCount.setText(String.valueOf(currentQuestionCount)); } });
-        btnMinus.setOnClickListener(v -> { if (currentQuestionCount > 1) { currentQuestionCount--; tvQuestionCount.setText(String.valueOf(currentQuestionCount)); } });
+        btnMinus.setOnClickListener(v -> { if (currentQuestionCount > 5) { currentQuestionCount--; tvQuestionCount.setText(String.valueOf(currentQuestionCount)); } });
 
         if (btnSelectAll != null) {
             btnSelectAll.setOnClickListener(v -> {
@@ -113,8 +115,17 @@ public class PilihSurahActivity extends AppCompatActivity {
                         .show();
                 return;
             }
+            
+            HashMap<Integer, Integer> surahTotalVersesMap = new HashMap<>();
+            for (Surah s : surahAdapter.getSurahList()) {
+                if (selectedIds.contains(s.getId())) {
+                    surahTotalVersesMap.put(s.getId(), s.getTotalVerses());
+                }
+            }
+
             Intent intent = new Intent(this, MainActivity.class);
             intent.putIntegerArrayListExtra("SELECTED_SURAH_IDS", new ArrayList<>(selectedIds));
+            intent.putExtra("SURAH_TOTAL_VERSES_MAP", surahTotalVersesMap);
             intent.putExtra("LIMIT", currentQuestionCount);
             intent.putExtra("SURAH_NAME", surahAdapter.getSelectedSurahName());
             // Kirim JUZ_ID agar progres tersimpan spesifik per Juz
