@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
     private int correctCount = 0;
     private int userId;
     private int juzId = 1;
+    private int requestedLimit = 5;
     private Set<Integer> failedQuestions = new HashSet<>();
     private Map<Integer, Integer> correctCountPerSurah = new HashMap<>();
     private Map<Integer, Integer> surahTotalVersesMap = new HashMap<>();
@@ -85,6 +86,7 @@ public class MainActivity extends AppCompatActivity {
         SharedPreferences sharedPref = getSharedPreferences("SambungAyatPref", Context.MODE_PRIVATE);
         userId = sharedPref.getInt("USER_ID", 0);
         juzId = getIntent().getIntExtra("JUZ_ID", 1);
+        requestedLimit = getIntent().getIntExtra("LIMIT", 5);
 
         HashMap<Integer, Integer> receivedMap = (HashMap<Integer, Integer>) getIntent().getSerializableExtra("SURAH_TOTAL_VERSES_MAP");
         if (receivedMap != null) {
@@ -109,7 +111,6 @@ public class MainActivity extends AppCompatActivity {
         if (tvSoalArab != null) tvSoalArab.setTypeface(uthmaniFont);
 
         ArrayList<Integer> selectedSurahIds = getIntent().getIntegerArrayListExtra("SELECTED_SURAH_IDS");
-        int limit = getIntent().getIntExtra("LIMIT", 5);
         String surahName = getIntent().getStringExtra("SURAH_NAME");
 
         if (tvSurahInfo != null) tvSurahInfo.setText(surahName != null ? surahName : "Sambung Ayat");
@@ -128,7 +129,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         setupDropZone();
-        loadQuestions(selectedSurahIds, limit);
+        loadQuestions(selectedSurahIds, requestedLimit);
         loadAudioSettings();
     }
 
@@ -436,35 +437,59 @@ public class MainActivity extends AppCompatActivity {
     private void endSession(boolean isGameOver) {
         int totalQuestions = Math.max(1, questionList.size());
         
-        int finalProgress = 0;
+        // Menghitung total ayat gabungan dari surah-surah yang dipilih
+        int totalVInSession = 0;
+        int maxPossibleQuestions = 0;
+        for (int v : surahTotalVersesMap.values()) {
+            totalVInSession += v;
+            maxPossibleQuestions += (v - 1);
+        }
+
+        // Logic displayDenominator mengikuti limit vs total ayat
+        int displayDenominator = Math.min(requestedLimit, totalVInSession);
+        int displayNumerator = correctCount;
+
+        // Jika user sanggup menjawab semua pertanyaan yang tersedia di sesi ini
+        if (correctCount == totalQuestions) {
+            // Jika limit yang diminta lebih besar atau sama dengan total ayat yang ada di sesi ini
+            // DAN jumlah soal yang dikerjakan adalah maksimal dari surah tersebut (N-1)
+            // Maka tampilkan full (N/N)
+            if (requestedLimit >= totalVInSession && totalQuestions == maxPossibleQuestions) {
+                displayNumerator = totalVInSession;
+                displayDenominator = totalVInSession;
+            } else {
+                // Jika hanya mengerjakan sebagian (limit < totalV), maka 5/5, 10/10, dsb.
+                displayNumerator = displayDenominator;
+            }
+        }
+
+        String resultText = "Benar: " + displayNumerator + "/" + displayDenominator;
+        
+        // Update Progres dan Hitung Rata-rata Progres Sesi
+        int averageProgress = 0;
         if (!surahTotalVersesMap.isEmpty()) {
+            int sumP = 0;
             for (Map.Entry<Integer, Integer> entry : surahTotalVersesMap.entrySet()) {
                 int sId = entry.getKey();
                 int totalV = entry.getValue();
                 int correct = correctCountPerSurah.getOrDefault(sId, 0);
                 
-                int p = (correct * 100) / Math.max(1, totalV);
-                if (p == 0 && correct > 0) p = 1; // Minimal 1% jika ada yang benar
+                int p = (correct * 100) / Math.max(1, totalV - 1);
+                if (p > 100) p = 100;
+                if (p == 0 && correct > 0) p = 1;
                 updateProgressOnServer(sId, p);
-                
-                // Jika hanya satu surah, gunakan progres aslinya untuk tampilan
-                if (surahTotalVersesMap.size() == 1) finalProgress = p;
+                sumP += p;
             }
-        }
-        
-        // Jika campuran, gunakan rata-rata progres sesi atau progres global
-        if (surahTotalVersesMap.size() != 1) {
-            finalProgress = (correctCount * 100) / totalQuestions;
+            averageProgress = sumP / surahTotalVersesMap.size();
         }
 
-        // Kirim akumulasi total skor latihan dan streak tertinggi sekaligus ke server PHP saat sesi berakhir
         if (score > 0) {
             updateScoreOnServer(score, maxStreakInSession);
         }
 
         String title = isGameOver ? "Yaaah!" : "Selesai!";
-        String message = isGameOver ? "Nyawa kamu habis!\nProgres Surah: " + finalProgress + "%"
-                : "Alhamdulillah! Kamu menyelesaikan muraajah ini.\nBenar: " + correctCount + "/" + totalQuestions + "\nProgres Surah: " + finalProgress + "%";
+        String message = isGameOver ? "Nyawa kamu habis!\nProgres: " + averageProgress + "%"
+                : "Alhamdulillah! Kamu menyelesaikan muraajah ini.\n" + resultText + "\nProgres: " + averageProgress + "%";
 
         showCustomAlert(!isGameOver, title, message, true);
     }

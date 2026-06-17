@@ -94,8 +94,14 @@ public class PilihSurahActivity extends AppCompatActivity {
         });
 
         tvQuestionCount.setText(String.valueOf(currentQuestionCount));
-        btnPlus.setOnClickListener(v -> { if (currentQuestionCount < 10) { currentQuestionCount++; tvQuestionCount.setText(String.valueOf(currentQuestionCount)); } });
-        btnMinus.setOnClickListener(v -> { if (currentQuestionCount > 5) { currentQuestionCount--; tvQuestionCount.setText(String.valueOf(currentQuestionCount)); } });
+        btnPlus.setOnClickListener(v -> { 
+            // Meningkatkan batas maksimal agar bisa murojaah surah yang lebih panjang
+            if (currentQuestionCount < 50) { 
+                currentQuestionCount++; 
+                tvQuestionCount.setText(String.valueOf(currentQuestionCount)); 
+            } 
+        });
+        btnMinus.setOnClickListener(v -> { if (currentQuestionCount > 1) { currentQuestionCount--; tvQuestionCount.setText(String.valueOf(currentQuestionCount)); } });
 
         if (btnSelectAll != null) {
             btnSelectAll.setOnClickListener(v -> {
